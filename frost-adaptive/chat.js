@@ -143,7 +143,10 @@
             if (!cont && !row.dataset.lay) {
                 row.dataset.lay = measureLayout(row);
             }
-            row.classList.toggle('is-inline', !cont && row.dataset.lay === 'inline');
+            /* в строку только одиночное сообщение: как только у зрителя
+           появляется второе подряд, ник уходит наверх, а сообщения
+           идут в одной карточке с новой строки */
+        row.classList.toggle('is-inline', !cont && !hasNext && row.dataset.lay === 'inline');
         });
     }
 

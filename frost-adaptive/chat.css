@@ -264,8 +264,13 @@ body {
     clip-path: inset(-2em -2em 0 -2em);   /* тень не ложится на соседа */
 }
 
+/* сообщения в группе просто идут с новой строки */
+#log > .g-next > .message {
+    padding-bottom: 0.1em;
+}
+
 #log > .g-cont > .message {
-    padding-top: 0.5em;
+    padding-top: 0.1em;
     border-top-width: 0;
     border-top-left-radius: 0;
     border-top-right-radius: 0;
@@ -275,17 +280,6 @@ body {
 
 #log > .g-cont.g-next > .message {
     clip-path: inset(0 -2em);
-}
-
-/* тонкая линия между сообщениями */
-#log > .g-cont > .message::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0.7em;
-    right: 0.7em;
-    height: 1px;
-    background: var(--divider);
 }
 
 /* Эмоуты */
