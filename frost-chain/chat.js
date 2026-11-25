@@ -97,11 +97,12 @@ document.addEventListener('onEventReceived', (event) => {
     insertReply();
 });
 
-/* Цепь висит сверху и заканчивается на застёжке последнего сообщения.
-   Сами звенья стоят на месте (привязаны к низу #log), сообщения едут
-   вверх мимо них; JS только обрезает цепь снизу до нужной высоты. */
+/* Цепь: у каждой карточки свой отрезок от её колечка вверх до колечка
+   предыдущей (сам отрезок рисует CSS, .chain). Здесь только считаем длину
+   отрезка и подгоняем высоту звена так, чтобы звеньев было целое число:
+   тогда все колечки сидят на цепи одинаково. */
 
-(function trackChainEnd() {
+(function fitChain() {
     const log = document.getElementById('log');
 
     if (!log) {
@@ -113,22 +114,30 @@ document.addEventListener('onEventReceived', (event) => {
     function update() {
         frame = 0;
 
+        const linkEm = 1.44;
+        const em = parseFloat(getComputedStyle(log).fontSize) || 16;
+        const period = linkEm * em;
+
         const rows = [...log.children].filter(
             row => row.tagName === 'DIV' && !row.classList.contains('deleted')
         );
-        const last = rows[rows.length - 1];
 
-        if (!last) {
-            log.style.setProperty('--chain-end', '100%');
-            return;
-        }
+        rows.forEach((row, i) => {
+            let seg;
+            let link = period;
 
-        const hook = getComputedStyle(last, '::before');
-        const hookMiddle =
-            (parseFloat(hook.top) || 0) + (parseFloat(hook.height) || 0) / 2;
-        const end = log.clientHeight - (last.offsetTop + hookMiddle);
+            if (i === 0) {
+                /* верхняя карточка: цепь уходит под заголовок */
+                seg = Math.ceil((row.offsetTop + 4 * em) / period) * period;
+            } else {
+                seg = row.offsetTop - rows[i - 1].offsetTop;
+                const count = Math.max(1, Math.round(seg / period));
+                link = seg / count;
+            }
 
-        log.style.setProperty('--chain-end', Math.max(0, end) + 'px');
+            row.style.setProperty('--seg', seg + 'px');
+            row.style.setProperty('--link', link + 'px');
+        });
     }
 
     function schedule() {

@@ -28,7 +28,9 @@
     --fade:         3.2em;     /* высота растворения сверху */
 
     /* цепь: звено «плашмя» + звено «ребром», повторяется по вертикали */
-    --chain-links: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 24'%3E%3Cg fill='%23f3f6ff' stroke='%237d95cf' stroke-width='1.2'%3E%3Crect x='3.7' y='-15' width='2.6' height='18' rx='1.3'/%3E%3Crect x='3.7' y='9' width='2.6' height='18' rx='1.3'/%3E%3C/g%3E%3Cg fill='none'%3E%3Cellipse cx='5' cy='6' rx='3.3' ry='5.2' stroke='%237d95cf' stroke-width='1.9'/%3E%3Cellipse cx='5' cy='6' rx='3.3' ry='5.2' stroke='%23ffffff' stroke-width='0.6'/%3E%3C/g%3E%3C/svg%3E");
+    /* цепь: звено «ребром» на стыках тайла, звено «плашмя» посередине;
+       колечко застёжки всегда приходится на середину звена «ребром» */
+    --chain-links: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 24' preserveAspectRatio='none'%3E%3Cg fill='%23f3f6ff' stroke='%237d95cf' stroke-width='1.2'%3E%3Crect x='3.7' y='-9' width='2.6' height='18' rx='1.3'/%3E%3Crect x='3.7' y='15' width='2.6' height='18' rx='1.3'/%3E%3C/g%3E%3Cg fill='none'%3E%3Cellipse cx='5' cy='12' rx='3.3' ry='5.2' stroke='%237d95cf' stroke-width='1.9'/%3E%3Cellipse cx='5' cy='12' rx='3.3' ry='5.2' stroke='%23ffffff' stroke-width='0.6'/%3E%3C/g%3E%3C/svg%3E");
 
     /* застёжка: колечко на цепи и тонкая перемычка к карточке */
     --chain-hook: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 19 10'%3E%3Cpath d='M8.3 5H19' stroke='%237d95cf' stroke-width='1.2'/%3E%3Ccircle cx='5' cy='5' r='3.1' fill='%23f3f6ff' stroke='%237d95cf' stroke-width='1.6'/%3E%3Ccircle cx='5' cy='5' r='3.1' fill='none' stroke='%23ffffff' stroke-width='0.5'/%3E%3C/svg%3E");
@@ -60,8 +62,6 @@ body {
 /* Контейнер чата */
 
 #log {
-    --chain-end: 1em;          /* без JS цепь доходит почти до низа */
-
     position: absolute;
     bottom: 0;
     left: 0;
@@ -72,23 +72,21 @@ body {
     gap: var(--gap);
 }
 
-/* Цепь: висит с самого верха. Звенья привязаны к низу #log и не двигаются,
-   chat.js только обрезает её на застёжке последнего сообщения. */
-#log::before {
-    content: "";
+/* Цепь собирается из отрезков: у каждой карточки свой отрезок от её
+   застёжки вверх до застёжки предыдущей. chat.js подгоняет длину звена,
+   чтобы в отрезок влезало целое число звеньев, — поэтому колечко каждой
+   карточки всегда надето на одно и то же место цепи. */
+#log .chain {
     position: absolute;
-    left: calc(var(--chain-x) - 0.3em);
+    left: calc(var(--chain-x) - var(--card-left) - 0.3em - 1px);
+    bottom: calc(100% - var(--hook-top) - 0.3em);   /* низ = центр колечка */
     width: 0.6em;
-    top: -300vh;
-    bottom: 0;
-    background: var(--chain-links) center bottom / 0.6em 1.44em repeat-y;
-    opacity: 0.95;
-    clip-path: inset(0 0 var(--chain-end) 0);
-    transition: clip-path 0.45s cubic-bezier(0.2, 0.8, 0.2, 1);
+    height: var(--seg, 0px);
+    background: var(--chain-links) center bottom / 0.6em var(--link, 1.44em) repeat-y;
     pointer-events: none;
 }
 
-#log.chain-thread::before {
+#log.chain-thread .chain {
     background:
         linear-gradient(90deg,
             transparent calc(50% - 1px),
@@ -101,7 +99,7 @@ body {
     padding-left: 0.35em;
 }
 
-#log.chain-none::before,
+#log.chain-none .chain,
 #log.chain-none > div::before {
     display: none;
 }
@@ -142,6 +140,7 @@ body {
     top: var(--hook-top);
     width: 1.14em;
     height: 0.6em;
+    z-index: 1;
     background: var(--chain-hook) left center / contain no-repeat;
 }
 
@@ -149,7 +148,7 @@ body {
     left: calc(var(--chain-x) - var(--card-left) - 0.15em - 1px);
     width: calc(var(--card-left) - var(--chain-x) + 0.15em);
     height: 0.3em;
-    top: calc(var(--hook-top) + 0.1em);
+    top: calc(var(--hook-top) + 0.15em);
     background:
         radial-gradient(circle at 0.15em 50%, #ffffff 0.07em, var(--accent) 0.08em, var(--accent) 0.14em, transparent 0.15em),
         linear-gradient(var(--accent), var(--accent)) right center / calc(100% - 0.3em) 1px no-repeat;
