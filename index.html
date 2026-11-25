@@ -28,7 +28,7 @@
     #status a { color: var(--acc); }
     #stage-wrap { position: relative; overflow: hidden; border-radius: 6px; box-shadow: 0 6px 30px #0008; }
     #stage { position: absolute; left: 0; top: 0; width: 1280px; height: 720px; transform-origin: 0 0;
-             background: var(--stage-bg, linear-gradient(160deg, #eef1fb, #c9d3ee)); background-size: cover; background-position: center; }
+             background: var(--stage-bg, linear-gradient(160deg, #eef1fb, #c9d3ee)); background-size: 100% 100%; }
     #chat { position: absolute; border: 0; background: transparent; pointer-events: none; }
     /* рамка источника: тянется за всю площадь, растягивается за правый нижний угол */
     #frame { position: absolute; cursor: move; outline: 2px dashed transparent; outline-offset: 0; touch-action: none; }
@@ -60,8 +60,8 @@
         <button class="ghost" id="bg-clear">Убрать фон</button>
     </div>
     <input id="bg-file" type="file" accept="image/*" hidden>
-    <div class="row" style="margin-top:10px"><span>Холст без картинки</span>
-        <select id="canvas"><option value="1280x720">1280 × 720</option><option value="1920x1080">1920 × 1080</option></select></div>
+    <div class="row" style="margin-top:10px"><span>Холст (как в OBS)</span>
+        <select id="canvas"><option value="1280x720">1280 × 720</option><option value="1920x1080">1920 × 1080</option><option value="2560x1440">2560 × 1440</option></select></div>
     <div class="row"><span>Источник в OBS (тяни рамку на превью)</span>
         <div class="grid4">
             <label><small>X</small><input id="sx" type="number"></label>
@@ -72,7 +72,7 @@
     <button class="ghost" id="src-reset">Положение из стиля</button>
 
     <h2>Streamlabs</h2>
-    <div class="row"><span>Размер шрифта <output id="fs-v"></output></span><input id="fs" type="range" min="12" max="32" value="16"></div>
+    <div class="row"><span>Размер шрифта <output id="fs-v"></output></span><input id="fs" type="range" min="12" max="48" value="24"></div>
     <div class="row"><span>Скрывать после <output id="hide-v"></output></span><input id="hide" type="range" min="0" max="60" value="0"></div>
 
     <h2>Поля стиля (fields.json)</h2>
@@ -289,22 +289,18 @@ function fit() {
 }
 
 /* ---------- фон и холст ---------- */
-const canvasKey = () => userBg ? `img:${userBg.w}x${userBg.h}` : 'canvas:' + $('canvas').value;
 
 function applyStage() {
-    if (userBg) {
-        stageSize = { w: userBg.w, h: userBg.h };
-        $('stage').style.setProperty('--stage-bg', `url("${userBg.url}")`);
-    } else {
-        const [w, h] = $('canvas').value.split('x').map(Number);
-        stageSize = { w, h };
-        if (styleBg) $('stage').style.setProperty('--stage-bg', styleBg);
-        else $('stage').style.removeProperty('--stage-bg');
-    }
-    $('canvas').disabled = !!userBg;
-    /* положение источника запоминается отдельно для каждого размера холста */
-    const saved = store.get('src:' + canvasKey());
-    SOURCE = clampSource(saved || scaledDefault());
+    /* холст всегда как выбран; своя картинка растягивается на весь холст */
+    const [w, h] = $('canvas').value.split('x').map(Number);
+    stageSize = { w, h };
+    if (userBg) $('stage').style.setProperty('--stage-bg', `url("${userBg.url}")`);
+    else if (styleBg) $('stage').style.setProperty('--stage-bg', styleBg);
+    else $('stage').style.removeProperty('--stage-bg');
+    /* положение источника хранится в долях холста, поэтому при смене
+       разрешения рамка масштабируется вместе с картинкой */
+    const f = store.get('srcf');
+    SOURCE = clampSource(f ? { x: f.x * w, y: f.y * h, w: f.w * w, h: f.h * h } : scaledDefault());
     placeSource();
     fit();
 }
@@ -326,7 +322,7 @@ function clampSource(r) {
 function placeSource(save) {
     for (const el of [$('chat'), $('frame')]) Object.assign(el.style, { left: SOURCE.x + 'px', top: SOURCE.y + 'px', width: SOURCE.w + 'px', height: SOURCE.h + 'px' });
     $('sx').value = SOURCE.x; $('sy').value = SOURCE.y; $('sw').value = SOURCE.w; $('sh').value = SOURCE.h;
-    if (save) store.set('src:' + canvasKey(), SOURCE);
+    if (save) store.set('srcf', { x: SOURCE.x / stageSize.w, y: SOURCE.y / stageSize.h, w: SOURCE.w / stageSize.w, h: SOURCE.h / stageSize.h });
 }
 
 function setBackground(file) {
@@ -335,7 +331,7 @@ function setBackground(file) {
     reader.onload = () => {
         const img = new Image();
         img.onload = () => {
-            userBg = { url: reader.result, w: img.naturalWidth, h: img.naturalHeight };
+            userBg = { url: reader.result };
             const kept = store.set('bg', userBg);
             if (!kept) { store.set('bg', null); status('Фон слишком большой, чтобы браузер его запомнил: он пропадёт после перезагрузки.'); }
             applyStage();
@@ -348,9 +344,9 @@ function setBackground(file) {
 $('bg-pick').onclick = () => $('bg-file').click();
 $('bg-file').onchange = e => { setBackground(e.target.files[0]); e.target.value = ''; };
 $('bg-clear').onclick = () => { userBg = null; store.set('bg', null); applyStage(); };
-$('canvas').value = store.get('canvas') || '1280x720';
-$('canvas').onchange = e => { store.set('canvas', e.target.value); applyStage(); };
-$('src-reset').onclick = () => { store.set('src:' + canvasKey(), null); SOURCE = clampSource(scaledDefault()); placeSource(); };
+$('canvas').value = store.get('canvas2') || '1920x1080';
+$('canvas').onchange = e => { store.set('canvas2', e.target.value); applyStage(); };
+$('src-reset').onclick = () => { store.set('srcf', null); SOURCE = clampSource(scaledDefault()); placeSource(); };
 for (const [id, key] of [['sx', 'x'], ['sy', 'y'], ['sw', 'w'], ['sh', 'h']]) {
     $(id).addEventListener('change', e => { SOURCE = clampSource({ ...SOURCE, [key]: +e.target.value }); placeSource(true); });
 }
@@ -475,7 +471,7 @@ for (const [id, unit, fmt] of [['fs', 'px', v => v + 'px'], ['hide', 's', v => +
 $('reset').onclick = () => {
     for (const k of Object.keys(fields)) params.delete(k);
     setParam('fs', null); setParam('hide', null);
-    $('fs').value = 16; $('hide').value = 0;
+    $('fs').value = 24; $('hide').value = 0;
     $('fs').dispatchEvent(new Event('input')); $('hide').dispatchEvent(new Event('input'));
     for (const [k, f] of Object.entries(fields)) values[k] = f.value;
     renderFields();
