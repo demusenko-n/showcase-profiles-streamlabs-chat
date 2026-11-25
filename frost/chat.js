@@ -85,7 +85,8 @@
         message.prepend(reply);
 
         row.classList.add('is-reply');
-        row.dataset.lay = 'stack';   // ответ всегда с ником сверху
+        /* ответ с ником сверху; в раскладке «в строку» — цитата, под ней «ник: текст» */
+        row.dataset.lay = layoutMode() === 'inline' ? 'inline' : 'stack';
         return true;
     }
 
@@ -93,7 +94,7 @@
 
     function measureLayout(row) {
         if (row.classList.contains('is-reply')) {
-            return 'stack';
+            return layoutMode() === 'inline' ? 'inline' : 'stack';
         }
         const mode = layoutMode();
         if (mode !== 'adaptive') {
@@ -110,6 +111,23 @@
 
         row.classList.remove('a-measure');
         return fits ? 'inline' : 'stack';
+    }
+
+        /* В строку цитата стоит первой в карточке, над «ник: текст»;
+       иначе — внутри .message, как обычно */
+    function placeReply(row) {
+        const reply = row.querySelector('.reply');
+        const message = row.querySelector('.message');
+        if (!reply || !message) {
+            return;
+        }
+        if (row.classList.contains('is-inline')) {
+            if (reply.parentNode !== row) {
+                row.prepend(reply);
+            }
+        } else if (reply.parentNode !== message) {
+            message.prepend(reply);
+        }
     }
 
     /* ---------- группы ---------- */
@@ -148,6 +166,7 @@
            появляется второе подряд, ник уходит наверх, а сообщения
            идут в одной карточке с новой строки */
         row.classList.toggle('is-inline', !cont && !hasNext && row.dataset.lay === 'inline');
+        placeReply(row);
         });
     }
 
