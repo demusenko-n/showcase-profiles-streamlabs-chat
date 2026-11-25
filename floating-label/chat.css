@@ -1,0 +1,359 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,600;1,700&family=Nunito:wght@500;600;700&family=Noto+Sans+JP:wght@500;600;700&family=Noto+Sans+KR:wght@500;600;700&family=Noto+Serif+JP:wght@600;700&family=Noto+Serif+KR:wght@600;700&display=swap');
+
+/*
+ * Floating Label — ник сидит на верхней рамке карточки, как именная табличка.
+ * Streamlabs Chat Box → Custom HTML/CSS.
+ * Размер источника под bg.jpg 1280×720: 290×470, позиция x 944, y 126.
+ */
+
+:root {
+    --ink:          #3a4d7a;   /* текст сообщения */
+    --nick:         #4a6399;   /* ник */
+    --accent:       #89a0d8;   /* ✦ и линия цитаты */
+    --muted:        #6f86bd;   /* текст цитаты */
+
+    /* Всё непрозрачное: OBS смешивает полупрозрачный белый с фоном
+       неверно, и он выходит серым */
+    --card-top:     #f5f7ff;
+    --card-bottom:  #e8eefd;
+    --card-border:  #ffffff;
+    --card-shadow:  rgba(93, 124, 188, 0.2);
+    --quote-bg:     #e0e8fb;
+
+    /* табличка */
+    --label-top:    #e6ebfd;
+    --label-bottom: #c9d5f6;
+    --label-border: #ffffff;
+    --label-ink:    var(--nick);
+    --label-star:   #5d7cbc;
+
+    --fade:         3.4em;     /* высота растворения сверху */
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html, body {
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+}
+
+body {
+    background: transparent;
+    font-family: 'Nunito', 'Noto Sans JP', 'Noto Sans KR', 'Segoe UI', sans-serif;
+    font-synthesis: none;      /* иероглифы не «заваливаются» фальшивым курсивом */
+    font-size: {font_size};
+    color: var(--ink);
+    text-shadow: none;
+
+    /* старые сообщения плавно растворяются под заголовком панели */
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 var(--fade));
+            mask-image: linear-gradient(to bottom, transparent 0, #000 var(--fade));
+}
+
+/* Варианты таблички */
+
+/* тёмная: заливка глубоким голубым, ник белый */
+#log.label-deep {
+    --label-top:    #6f8cc9;
+    --label-bottom: #5470ad;
+    --label-border: #e6ebfd;
+    --label-ink:    #ffffff;
+    --label-star:   #d7e1fc;
+}
+
+/* вырез: табличка цвета карточки, рамка как будто разомкнута под ником */
+#log.label-tab {
+    --label-top:    var(--card-top);
+    --label-bottom: var(--card-top);
+    --label-border: var(--accent);
+}
+
+/* Контейнер чата */
+
+#log {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    padding: 0 0.35em 0.75em;  /* отступ от звёздочек в нижних углах */
+    display: flex;
+    flex-direction: column;
+    gap: 0.55em;
+}
+
+/* Сообщение: табличка + карточка */
+
+#log > div {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    width: 100%;
+    /* табличка в потоке, а не absolute: при появлении
+       она не может наехать на соседнюю карточку */
+    animation: labelIn 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    /* «Скрывать сообщения после N с» из настроек Streamlabs */
+    animation:
+        labelIn 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both,
+        labelOut 0.6s ease {message_hide_delay} forwards;
+}
+
+#log > div.deleted {
+    display: none;
+}
+
+/* Табличка с ником */
+
+#log .meta {
+    position: relative;
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.28em;
+    max-width: calc(100% - 1.6em);
+    margin: 0 0 -0.72em 0.7em;   /* нижняя половина ложится на рамку карточки */
+    padding: 0.08em 0.6em 0.12em 0.45em;
+
+    font-family: 'Cormorant Garamond', 'Noto Serif JP', 'Noto Serif KR', Georgia, serif;
+    font-style: italic;
+    font-size: 1.1em;                         /* оригинал (без Streamlabs) */
+    font-size: calc({nickSize} * 0.01em);     /* поле «Размер ника» */
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: 0.01em;
+    font-size-adjust: from-font;   /* иероглифы по высоте как латиница */
+    font-variant-numeric: lining-nums;
+    font-feature-settings: "lnum" 1;
+
+    background: linear-gradient(180deg, var(--label-top), var(--label-bottom));
+    border: 1px solid var(--label-border);
+    border-radius: 0.55em;
+    box-shadow: 0 0.12em 0.4em rgba(93, 124, 188, 0.22);
+}
+
+#log.label-tab .meta {
+    box-shadow: none;
+}
+
+#log .meta::before {
+    content: "✦";
+    flex: none;
+    font-family: 'Segoe UI Symbol', 'Nunito', sans-serif;
+    font-style: normal;
+    font-weight: 400;
+    font-size: 0.68em;
+    color: var(--label-star);
+}
+
+/* Цвет ника: оригинал — из палитры таблички; nick-twitch — цвет из Twitch,
+   притянутый к палитре, чтобы жёлтые и салатовые ники читались */
+
+#log:not(.nick-twitch) .meta,
+#log:not(.nick-twitch) .name {
+    color: var(--label-ink) !important;
+}
+
+#log.nick-twitch .name {
+    color: inherit;
+    color: color-mix(in oklab, currentColor 65%, #26355f);
+}
+
+#log.nick-twitch.label-deep .name {
+    color: inherit;
+    color: color-mix(in oklab, currentColor 45%, #ffffff);
+}
+
+#log .name {
+    min-width: 0;
+    padding-right: 0.12em;     /* курсив не обрезается справа */
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+#log .colon {
+    display: none;
+}
+
+/* Значки */
+
+#log .badges {
+    display: inline-flex;
+    flex: none;
+    gap: 0.15em;
+}
+
+#log .badges:empty,
+#log.badges-hide .badges {
+    display: none;
+}
+
+#log .badge {
+    display: block;
+    height: 0.85em;
+    width: auto;
+    border-radius: 0.15em;
+    filter: grayscale(1) sepia(1) hue-rotate(185deg) saturate(1.6) brightness(0.95);
+    opacity: 0.85;
+}
+
+#log.label-deep .badge {
+    filter: grayscale(1) brightness(2.2);
+    opacity: 0.9;
+}
+
+#log.badges-color .badge {
+    filter: none;
+    opacity: 1;
+}
+
+/* Карточка */
+
+#log .message {
+    position: relative;
+    display: block;
+    width: 100%;
+    padding: 0.95em 0.75em 0.5em;   /* сверху — место под табличку */
+
+    font-size: 1em;
+    font-weight: 600;
+    line-height: 1.35;
+    color: var(--ink);
+
+    background: linear-gradient(165deg, var(--card-top), var(--card-bottom));
+    border: 1px solid var(--card-border);
+    border-radius: 0.75em;
+    /* тонкая вторая линия внутри рамки */
+    box-shadow:
+        inset 0 0 0 0.2em var(--card-top),
+        inset 0 0 0 calc(0.2em + 1px) #ffffff,
+        0 0.2em 0.8em var(--card-shadow);
+
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+/* маленькая ✦ на верхней рамке справа */
+#log .message::after {
+    content: "✦";
+    position: absolute;
+    top: -0.62em;
+    right: 0.9em;
+    padding: 0 0.15em;
+    font-family: 'Segoe UI Symbol', 'Nunito', sans-serif;
+    font-size: 0.75em;
+    font-weight: 400;
+    line-height: 1.2;
+    color: var(--accent);
+    text-shadow: 0 0 0.2em #ffffff, 0 0 0.4em #ffffff;
+}
+
+/* Эмоуты */
+
+#log .emote {
+    display: inline-block;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+    vertical-align: middle;
+    margin: -0.15em 0.05em;
+}
+
+#log .emote img {
+    display: inline-block;
+    height: 1.5em;
+    opacity: 0;
+}
+
+/* Цитата ответа (её добавляет chat.js) */
+
+#log .reply {
+    position: relative;
+    display: block;
+    margin: 0 0 0.35em;
+    padding: 0.25em 0.55em 0.3em 1.25em;
+
+    background: var(--quote-bg);
+    border-radius: 0.45em;
+
+    font-size: 0.8em;
+    line-height: 1.3;
+}
+
+/* крючок ↳, нарисованный рамкой: не зависит от шрифта */
+#log .reply::before {
+    content: "";
+    position: absolute;
+    left: 0.5em;
+    top: 0.35em;
+    width: 0.45em;
+    height: 0.55em;
+    border-left: 0.12em solid var(--accent);
+    border-bottom: 0.12em solid var(--accent);
+    border-bottom-left-radius: 0.3em;
+}
+
+#log .reply-author {
+    display: block;
+    color: var(--nick);
+    font-weight: 700;
+
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+#log .reply-body {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+
+    color: var(--muted);
+    font-weight: 500;
+
+    overflow: hidden;
+    overflow-wrap: anywhere;
+}
+
+/* Появление: карточка поднимается, табличка «прикрепляется» чуть позже */
+
+@keyframes labelIn {
+    from {
+        opacity: 0;
+        transform: translateY(0.5em);
+        filter: blur(3px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+        filter: none;
+    }
+}
+
+#log > div .meta {
+    animation: tagPin 0.45s 0.15s cubic-bezier(0.3, 1.4, 0.5, 1) both;
+}
+
+@keyframes tagPin {
+    from {
+        opacity: 0;
+        transform: translateY(0.25em) scale(0.94);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@keyframes labelOut {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+        filter: blur(2px);
+    }
+}
