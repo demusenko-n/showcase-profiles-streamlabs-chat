@@ -1,0 +1,377 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chat styles</title>
+<style>
+    :root { --bg: #141927; --panel: #1b2133; --line: #2b3450; --text: #dfe6fb; --dim: #8f9bbd; --acc: #8299c8; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; background: #0f1320; color: var(--text); font: 13px/1.4 system-ui, sans-serif; }
+    body { display: flex; }
+    aside { width: 270px; flex: none; height: 100%; overflow-y: auto; background: var(--bg); border-right: 1px solid var(--line); padding: 14px; }
+    main { flex: 1; min-width: 0; display: flex; align-items: center; justify-content: center; padding: 12px; }
+    h1 { font-size: 15px; margin: 0 0 12px; }
+    h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--dim); margin: 18px 0 8px; }
+    .row { display: grid; gap: 4px; margin-bottom: 10px; }
+    .row > span { color: var(--dim); }
+    .row output { color: var(--text); float: right; }
+    select, input[type=text], input[type=color] { width: 100%; background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 5px 7px; font: inherit; }
+    input[type=color] { height: 30px; padding: 2px; }
+    input[type=range] { width: 100%; accent-color: var(--acc); }
+    .btns { display: flex; flex-wrap: wrap; gap: 6px; }
+    button { background: #34466b; color: #fff; border: 0; border-radius: 6px; padding: 5px 9px; cursor: pointer; font: inherit; }
+    button:hover { background: #4f68a0; }
+    button.ghost { background: transparent; border: 1px solid var(--line); color: var(--dim); }
+    label.check { display: flex; gap: 6px; align-items: center; margin-top: 8px; }
+    #status { color: var(--dim); font-size: 12px; margin-top: 14px; word-break: break-word; }
+    #status a { color: var(--acc); }
+    #stage-wrap { position: relative; overflow: hidden; border-radius: 6px; box-shadow: 0 6px 30px #0008; }
+    #stage { position: absolute; left: 0; top: 0; width: 1280px; height: 720px; transform-origin: 0 0; background: center / cover no-repeat; }
+    #chat { position: absolute; border: 0; background: transparent; }
+    #stage.guide #chat { outline: 1px dashed rgba(255, 0, 90, .8); }
+    body.clean aside { display: none; }
+    body.clean main { padding: 0; }
+    body.clean #stage-wrap { border-radius: 0; box-shadow: none; }
+    @media (max-width: 700px) { body { flex-direction: column; } aside { width: 100%; height: auto; border-right: 0; } }
+</style>
+</head>
+<body>
+<aside>
+    <h1>Стили чата</h1>
+    <div class="row"><span>Стиль</span><select id="style"></select></div>
+    <div class="row" id="ref-row"><span>Ветка</span><select id="ref"></select></div>
+
+    <h2>Streamlabs</h2>
+    <div class="row"><span>Размер шрифта <output id="fs-v"></output></span><input id="fs" type="range" min="12" max="32" value="16"></div>
+    <div class="row"><span>Скрывать после <output id="hide-v"></output></span><input id="hide" type="range" min="0" max="60" value="0"></div>
+
+    <h2>Поля стиля (fields.json)</h2>
+    <div id="fields"><span style="color:var(--dim)">нет полей</span></div>
+    <button class="ghost" id="reset">Сбросить к оригиналу</button>
+
+    <h2>Сообщения</h2>
+    <div class="btns">
+        <button id="add">+ сообщение</button>
+        <button id="reply">+ ответ</button>
+        <button id="long">+ длинное</button>
+        <button id="del">удалить</button>
+    </div>
+    <label class="check"><input id="auto" type="checkbox" checked> новые сообщения сами</label>
+    <label class="check"><input id="guide" type="checkbox"> рамка источника</label>
+
+    <div id="status"></div>
+</aside>
+<main><div id="stage-wrap"><div id="stage"><iframe id="chat" title="chat"></iframe></div></div></main>
+
+<script>
+/* Браузерный источник в OBS: позиция и размер под bg.jpg 1280×720 */
+const SOURCE = { x: 944, y: 126, w: 290, h: 470 };
+/* Файлы стиля: папка в корне репозитория, в которой есть chat.html */
+const FILES = { html: 'chat.html', css: 'chat.css', js: ['chat.js', 'main.js'], fields: 'fields.json' };
+
+const $ = id => document.getElementById(id);
+const params = new URLSearchParams(location.search);
+const setParam = (k, v) => { v === null || v === '' ? params.delete(k) : params.set(k, v); history.replaceState(null, '', '?' + params); };
+if (params.has('clean')) document.body.classList.add('clean');
+
+/* ---------- откуда брать файлы ---------- */
+/* GitHub: на github.io владелец и репозиторий берутся из адреса;
+   можно указать явно: ?repo=owner/name. Иначе — файлы рядом со страницей. */
+function detectRepo() {
+    if (params.get('repo')) return params.get('repo');
+    const m = location.hostname.match(/^([^.]+)\.github\.io$/i);
+    if (!m) return null;
+    const first = location.pathname.split('/').filter(Boolean)[0];
+    return `${m[1]}/${first || m[1] + '.github.io'}`;
+}
+const REPO = detectRepo();
+const api = path => fetch(`https://api.github.com/repos/${REPO}${path ? '/' + path : ''}`).then(r => r.ok ? r.json() : Promise.reject(new Error(`GitHub API ${r.status}`)));
+
+let source;   // { styles: [...], url: (style, file) => URL, label }
+
+async function githubSource() {
+    const info = await api('');
+    const ref = params.get('ref') || info.default_branch;
+    const [branches, commit] = await Promise.all([api('branches?per_page=100'), api(`commits/${encodeURIComponent(ref)}`)]);
+    const sha = commit.sha;   // файлы по конкретному коммиту: свежие, без кеша ветки
+    const tree = await api(`git/trees/${sha}?recursive=1`);
+    const paths = new Set(tree.tree.map(t => t.path));
+    const styles = [...paths].filter(p => p.endsWith('/' + FILES.html) && p.split('/').length === 2).map(p => p.split('/')[0]);
+    $('ref').innerHTML = branches.map(b => `<option${b.name === ref ? ' selected' : ''}>${b.name}</option>`).join('');
+    return {
+        styles, paths,
+        url: (style, file) => `https://raw.githubusercontent.com/${REPO}/${sha}/${style}/${file}`,
+        has: (style, file) => paths.has(`${style}/${file}`),
+        bg: paths.has('bg.jpg') ? `https://raw.githubusercontent.com/${REPO}/${sha}/bg.jpg` : null,
+        label: `<a href="https://github.com/${REPO}/tree/${encodeURIComponent(ref)}" target="_blank">${REPO}</a> · ${ref} · ${sha.slice(0, 7)}`,
+    };
+}
+
+async function localSource() {
+    $('ref-row').style.display = 'none';
+    /* Локально список папок взять неоткуда (сервер отдаёт index.html вместо листинга),
+       поэтому стили перечисляются в адресе: ?styles=frost,ex1 или ?style=frost */
+    let styles = (params.get('styles') || params.get('style') || '').split(',').filter(Boolean);
+    try {   // если сервер всё же отдаёт листинг папки — берём папки из него
+        const html = await (await fetch('./')).text();
+        const dirs = [...html.matchAll(/href="([^"?#/]+)\/"/g)].map(m => decodeURIComponent(m[1]));
+        const found = await Promise.all(dirs.map(async d => (await fetch(`${d}/${FILES.html}`, { method: 'HEAD' })).ok ? d : null));
+        styles = [...new Set([...found.filter(Boolean), ...styles])];
+    } catch (e) {}
+    return {
+        styles,
+        url: (style, file) => `${style}/${file}`,
+        has: () => true,
+        bg: 'bg.jpg',
+        label: location.protocol === 'file:'
+            ? 'файл открыт напрямую — браузер не даст прочитать папки. Запусти <code>python -m http.server</code> или открой страницу на GitHub Pages'
+            : 'локальные файлы' + (styles.length ? '' : '<br>Укажи стили в адресе: <code>?styles=frost,ex1</code>'),
+    };
+}
+
+async function read(url) {
+    try { const r = await fetch(url, { cache: 'no-store' }); if (r.ok) return await r.text(); } catch (e) {}
+    return null;
+}
+
+/* ---------- поля ---------- */
+let fields = {};      // описание из fields.json
+let values = {};      // текущие значения
+
+function renderFields() {
+    const box = $('fields');
+    box.innerHTML = '';
+    const entries = Object.entries(fields).filter(([, f]) => f.type !== 'hidden');
+    if (!entries.length) { box.innerHTML = '<span style="color:var(--dim)">нет полей</span>'; return; }
+    for (const [key, f] of entries) {
+        const row = document.createElement('div');
+        row.className = 'row';
+        const title = document.createElement('span');
+        title.textContent = f.label || key;
+        row.append(title);
+        let input;
+        if (f.type === 'slider') {
+            input = Object.assign(document.createElement('input'), { type: 'range', min: f.min ?? 0, max: f.max ?? 100, step: f.steps ?? 1 });
+            const out = document.createElement('output');
+            title.append(' ', out);
+            const show = () => out.textContent = input.value;
+            input.addEventListener('input', show);
+            input.value = values[key]; show();
+        } else if (f.type === 'dropdown') {
+            input = document.createElement('select');
+            input.innerHTML = Object.entries(f.options || {}).map(([v, l]) => `<option value="${v}">${l}</option>`).join('');
+            input.value = values[key];
+        } else if (f.type === 'colorpicker') {
+            input = Object.assign(document.createElement('input'), { type: 'color', value: values[key] });
+        } else {
+            input = Object.assign(document.createElement('input'), { type: 'text', value: values[key] ?? '' });
+        }
+        input.addEventListener('change', () => {
+            values[key] = input.value;
+            setParam(key, String(input.value) === String(f.value) ? null : input.value);
+            build();
+        });
+        row.append(input);
+        box.append(row);
+    }
+}
+
+/* ---------- эмулятор Streamlabs внутри iframe ---------- */
+const EMULATOR = `
+const tpl = document.getElementById('chatlist_item').innerHTML;
+const log = document.getElementById('log');
+function fill(s, d) { return s.replace(/\\{(\\w+)\\}/g, (m, k) => k in d ? d[k] : m); }
+addEventListener('message', ({ data }) => {
+    if (data.type === 'delete') { const last = log.lastElementChild; if (last) last.classList.add('deleted'); return; }
+    if (data.type !== 'msg') return;
+    const m = data.msg;
+    const wrap = document.createElement('div');
+    wrap.innerHTML = fill(tpl, { from: m.from, messageId: m.id, color: m.color, message: m.html });
+    const row = wrap.firstElementChild;
+    const badges = row.querySelector('.badges');
+    if (badges) (m.badges || []).forEach(src => { const i = document.createElement('img'); i.className = 'badge'; i.src = src; badges.append(i); });
+    log.append(row);
+    while (log.children.length > 40) log.firstElementChild.remove();
+    document.dispatchEvent(new CustomEvent('onEventReceived', { detail: { command: 'PRIVMSG', from: m.from, messageId: m.id, body: m.text, tags: m.tags } }));
+});
+document.dispatchEvent(new CustomEvent('onLoad', { detail: {} }));
+parent.postMessage({ type: 'ready' }, '*');
+`;
+
+let files = null;     // { html, css, js } текущего стиля
+const esc = s => s.replace(/<\/script/gi, '<\\/script');
+
+async function loadStyle(style) {
+    const jsName = FILES.js.find(f => source.has(style, f));
+    const [html, css, js, fj] = await Promise.all([
+        read(source.url(style, FILES.html)),
+        read(source.url(style, FILES.css)),
+        jsName ? read(source.url(style, jsName)) : null,
+        source.has(style, FILES.fields) ? read(source.url(style, FILES.fields)) : null,
+    ]);
+    if (html === null) throw new Error(`не удалось прочитать ${style}/${FILES.html}`);
+    files = { html, css: css ?? '', js: js ?? '' };
+    try { fields = fj ? JSON.parse(fj) : {}; } catch (e) { fields = {}; status(`fields.json не разобрался: ${e.message}`); }
+    values = {};
+    for (const [k, f] of Object.entries(fields)) values[k] = params.has(k) ? params.get(k) : f.value;
+    renderFields();
+}
+
+function build() {
+    if (!files) return;
+    const hide = +$('hide').value;
+    const vals = {
+        ...values,
+        font_size: $('fs').value + 'px',
+        message_hide_delay: hide ? hide + 's' : '999999s',
+    };
+    const sub = t => t.replace(/\{(\w+)\}/g, (m, k) => k in vals ? vals[k] : m);
+    const frame = $('chat');
+    Object.assign(frame.style, { left: SOURCE.x + 'px', top: SOURCE.y + 'px', width: SOURCE.w + 'px', height: SOURCE.h + 'px' });
+    frame.srcdoc = `<!doctype html><html><head><meta charset="utf-8"><style>${sub(files.css)}</style></head><body>${sub(files.html)}
+<script>${esc(sub(files.js))}<\/script><script>${EMULATOR}<\/script></body></html>`;
+}
+
+function fit() {
+    const main = document.querySelector('main');
+    const s = Math.min((main.clientWidth - (document.body.classList.contains('clean') ? 0 : 24)) / 1280,
+                       (main.clientHeight - (document.body.classList.contains('clean') ? 0 : 24)) / 720);
+    $('stage').style.transform = `scale(${s})`;
+    $('stage-wrap').style.width = 1280 * s + 'px';
+    $('stage-wrap').style.height = 720 * s + 'px';
+}
+addEventListener('resize', fit);
+
+const status = html => $('status').innerHTML = html;
+
+/* ---------- тестовые сообщения ---------- */
+const E = id => `https://static-cdn.jtvnw.net/emoticons/v2/${id}/default/dark/1.0`;
+const B = id => `https://static-cdn.jtvnw.net/badges/v1/${id}/1`;
+const BADGE = {
+    broadcaster: B('5527c58c-fb7d-422d-b71b-f309dcb85cc1'),
+    mod: B('3267646d-33f0-4b17-b3df-f923a41db1d0'),
+    vip: B('b817aba4-fad8-49e2-b88a-7cc744dfa6ec'),
+    sub: B('5d9f2208-5dd8-11e7-8513-2ff4adfae661'),
+};
+const emote = id => `<span class="emote" style="background-image: url(${E(id)})"><img src="${E(id)}"></span>`;
+
+const USERS = [
+    { from: 'JI_IO_6_O_B_b', color: '#1E90FF', badges: [BADGE.sub] },
+    { from: 'redins1de', color: '#FF4500', badges: [BADGE.vip, BADGE.sub] },
+    { from: 'Fossabot', color: '#00FF7F', badges: [BADGE.mod] },
+    { from: 'chynaO_o', color: '#8A2BE2', badges: [BADGE.broadcaster] },
+    { from: 'sleepy_mita', color: '#DAA520', badges: [] },
+    { from: 'очень_длинный_ник_зрителя_2009', color: '#FF69B4', badges: [BADGE.sub] },
+    { from: '雪の妖精', color: '#5F9EA0', badges: [BADGE.sub] },
+    { from: '하늘별_ㅋㅋ', color: '#9ACD32', badges: [] },
+    { from: '白雪ちゃん_desu', color: '#B22222', badges: [BADGE.vip] },
+];
+const TEXTS = [
+    'дароу', 'пливет', 'кактус', '!testelo sleepy-mita:720',
+    `какой красивый оверлей ${emote(25)}`, 'это лучший стрим недели', `${emote(425618)} ${emote(425618)}`,
+    'а во сколько завтра стрим?', 'gg wp', `люблю этот чат ${emote(9)}`,
+];
+const LONG = 'sleepy-mita • ELO: 2417 • За 720ч: +206 [💚 24 / ❤️ 17] — и ещё немного текста, чтобы проверить перенос строк на три-четыре строки в узкой колонке';
+
+let n = 0;
+const pick = a => a[Math.floor(Math.random() * a.length)];
+const strip = h => h.replace(/<[^>]+>/g, '').trim();
+let lastMsg = { from: 'JI_IO_6_O_B_b', text: '!testelo sleepy-mita:720' };
+
+function send(user, html, extraTags = {}) {
+    const id = 'msg-' + (++n);
+    const text = strip(html);
+    $('chat').contentWindow.postMessage({ type: 'msg', msg: { ...user, id, html, text, tags: { id, ...extraTags } } }, '*');
+    lastMsg = { from: user.from, text: text || '(эмоут)' };
+}
+const sendRandom = () => send(pick(USERS), pick(TEXTS));
+function sendReply() {
+    const parent = lastMsg;
+    send(USERS[2], `@${parent.from} ${pick(['согласен', 'да-да', 'держи: ' + LONG.slice(0, 40)])}`, {
+        'reply-parent-msg-id': 'p' + n,
+        'reply-parent-display-name': parent.from,
+        'reply-parent-user-login': parent.from.toLowerCase(),
+        'reply-parent-msg-body': parent.text.replace(/ /g, '\\s'),
+    });
+}
+
+function seed() {
+    const s = [
+        () => send(USERS[3], `${emote(25)} ${emote(25)}`),
+        () => send(USERS[0], 'дароу'),
+        () => send(USERS[1], 'пливет'),
+        () => send(USERS[0], '!testelo sleepy-mita:720'),
+        () => { lastMsg = { from: 'JI_IO_6_O_B_b', text: '!testelo sleepy-mita:720' }; sendReply(); },
+        () => send(USERS[5], 'а можно вопрос: как называется этот трек? очень атмосферно'),
+        () => send(USERS[4], `ахах ${emote(425618)}`),
+        () => send(USERS[6], 'こんばんは〜 今日も可愛い'),
+        () => send(USERS[7], '안녕하세요!'),
+        () => send(USERS[8], 'mixed ник test'),
+        () => send(USERS[1], 'кактус'),
+    ];
+    s.forEach((f, i) => setTimeout(f, 60 * i));
+}
+
+/* ---------- элементы управления ---------- */
+$('add').onclick = sendRandom;
+$('reply').onclick = sendReply;
+$('long').onclick = () => send(USERS[2], LONG);
+$('del').onclick = () => $('chat').contentWindow.postMessage({ type: 'delete' }, '*');
+$('guide').onchange = e => $('stage').classList.toggle('guide', e.target.checked);
+if (params.has('still')) $('auto').checked = false;
+
+for (const [id, unit, fmt] of [['fs', 'px', v => v + 'px'], ['hide', 's', v => +v ? v + ' с' : 'никогда']]) {
+    const el = $(id);
+    if (params.has(id)) el.value = parseInt(params.get(id));
+    const show = () => $(id + '-v').textContent = fmt(el.value);
+    show();
+    el.addEventListener('input', show);
+    el.addEventListener('change', () => { setParam(id, el.value); build(); });
+}
+
+$('reset').onclick = () => {
+    for (const k of Object.keys(fields)) params.delete(k);
+    setParam('fs', null); setParam('hide', null);
+    $('fs').value = 16; $('hide').value = 0;
+    $('fs').dispatchEvent(new Event('input')); $('hide').dispatchEvent(new Event('input'));
+    for (const [k, f] of Object.entries(fields)) values[k] = f.value;
+    renderFields();
+    build();
+};
+
+$('style').onchange = async e => {
+    setParam('style', e.target.value);
+    await loadStyle(e.target.value);
+    build();
+};
+$('ref').onchange = e => { setParam('ref', e.target.value); location.reload(); };
+
+let timer;
+addEventListener('message', ({ data }) => {
+    if (data?.type !== 'ready') return;
+    seed();
+    clearInterval(timer);
+    timer = setInterval(() => { if ($('auto').checked) Math.random() < .2 ? sendReply() : sendRandom(); }, 2200);
+});
+
+(async () => {
+    fit();
+    try {
+        source = REPO ? await githubSource() : await localSource();
+    } catch (e) {
+        status(`Не удалось получить список стилей: ${e.message}`);
+        return;
+    }
+    if (source.bg) $('stage').style.backgroundImage = `url("${source.bg}")`;
+    status(source.label);
+    if (!source.styles.length) { status(source.label + '<br>Стилей не найдено: нужна папка с ' + FILES.html); return; }
+    const style = source.styles.includes(params.get('style')) ? params.get('style') : source.styles[0];
+    $('style').innerHTML = source.styles.map(s => `<option${s === style ? ' selected' : ''}>${s}</option>`).join('');
+    try { await loadStyle(style); } catch (e) { status(e.message); return; }
+    build();
+    fit();
+})();
+</script>
+</body>
+</html>
