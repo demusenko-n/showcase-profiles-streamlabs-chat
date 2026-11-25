@@ -52,7 +52,7 @@ body {
     bottom: 0;
     left: 0;
     width: 100%;
-    padding: 0 0.35em 0.35em;
+    padding: 0 0.35em 0.7em;   /* отступ от звёздочек в нижних углах */
     display: flex;
     flex-direction: column;
     gap: 0.5em;
@@ -81,14 +81,27 @@ body {
 
     font-family: 'Cormorant Garamond', 'Noto Serif JP', 'Noto Serif KR', Georgia, serif;
     font-style: italic;
-    font-size: 1.08em;
+    font-size: 1.2em;                         /* оригинал (без Streamlabs) */
+    font-size: calc({nickSize} * 0.01em);     /* поле «Размер ника» */
     font-weight: 700;
     line-height: 1.25;
     letter-spacing: 0.01em;
     font-size-adjust: from-font;   /* иероглифы по высоте как латиница */
     font-variant-numeric: lining-nums;
     font-feature-settings: "lnum" 1;
+}
+
+/* Цвет ника: оригинал — единый голубой; nick-twitch — цвет из Twitch,
+   чуть приглушённый, чтобы жёлтые и салатовые ники читались на светлом */
+
+#log:not(.nick-twitch) .meta,
+#log:not(.nick-twitch) .name {
     color: var(--nick) !important;
+}
+
+#log.nick-twitch .name {
+    color: inherit;
+    filter: brightness(0.78) saturate(0.85);
 }
 
 #log .meta::before {
@@ -101,7 +114,6 @@ body {
 }
 
 #log .name {
-    color: var(--nick) !important;
     min-width: 0;
     padding-right: 0.15em;     /* курсив не обрезается справа */
     overflow: hidden;
@@ -113,7 +125,8 @@ body {
     display: none;
 }
 
-/* Значки: чуть приглушены, чтобы не спорить с палитрой */
+/* Значки: оригинал — монохромные в тон палитры; badges-color — родные цвета;
+   badges-hide — без значков */
 
 #log .badges {
     display: inline-flex;
@@ -129,8 +142,17 @@ body {
     height: 0.85em;
     width: auto;
     border-radius: 0.15em;
-    filter: saturate(0.7);
-    opacity: 0.9;
+    filter: grayscale(1) sepia(1) hue-rotate(185deg) saturate(1.6) brightness(0.95);
+    opacity: 0.85;
+}
+
+#log.badges-color .badge {
+    filter: none;
+    opacity: 1;
+}
+
+#log.badges-hide .badges {
+    display: none;
 }
 
 /* Карточка с текстом */

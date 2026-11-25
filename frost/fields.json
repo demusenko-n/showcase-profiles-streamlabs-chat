@@ -1,0 +1,29 @@
+{
+    "nickSize": {
+        "label": "Размер ника, % от текста (оригинал: 120)",
+        "type": "slider",
+        "value": 120,
+        "min": 100,
+        "max": 150,
+        "steps": 5
+    },
+    "nickColor": {
+        "label": "Цвет ника",
+        "type": "dropdown",
+        "value": "palette",
+        "options": {
+            "palette": "Оригинал: единый голубой",
+            "twitch": "Цвет из Twitch"
+        }
+    },
+    "badgeStyle": {
+        "label": "Значки",
+        "type": "dropdown",
+        "value": "muted",
+        "options": {
+            "muted": "Оригинал: в тон палитры",
+            "color": "Цветные",
+            "hide": "Скрыть"
+        }
+    }
+}

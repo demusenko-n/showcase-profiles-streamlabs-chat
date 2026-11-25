@@ -47,7 +47,7 @@ $('font').value = params.get('fs') || 16;
 
 /* Шаблон Streamlabs по умолчанию — на случай, если файл открыт двойным кликом
    и браузер не даёт прочитать chat.html (file://). */
-const FALLBACK_HTML = `<div id="log" class="sl__chat__layout"></div>
+const FALLBACK_HTML = `<div id="log" class="sl__chat__layout nick-{nickColor} badges-{badgeStyle}"></div>
 <script type="text/template" id="chatlist_item">
     <div data-from="{from}" data-id="{messageId}">
         <span class="meta" style="color: {color}">
@@ -88,16 +88,23 @@ parent.postMessage({ type: 'ready' }, '*');
 async function build() {
     const html = (await read(`${design}/chat.html`)) ?? FALLBACK_HTML;
     const css = await read(`${design}/chat.css`);
+    /* Настраиваемые поля: значения по умолчанию из fields.json,
+       любое можно переопределить в адресе, например ?nickColor=twitch&nickSize=140 */
+    const fieldsJson = await read(`${design}/fields.json`);
+    const vals = {};
+    if (fieldsJson) for (const [k, f] of Object.entries(JSON.parse(fieldsJson))) vals[k] = f.value;
+    for (const [k, v] of params) if (!['d', 'fs', 'clean', 'still'].includes(k)) vals[k] = v;
+    const sub = t => t.replace(/\{(\w+)\}/g, (m, k) => k in vals ? vals[k] : m);
     $('note').textContent = css === null
         ? 'file:// — шаблон встроенный, CSS подключён ссылкой'
         : `${design}/ — файлы прочитаны`;
     const fs = $('font').value + 'px';
     const style = css !== null
-        ? `<style>${css.replaceAll('{font_size}', fs)}</style>`
+        ? `<style>${sub(css.replaceAll('{font_size}', fs))}</style>`
         : `<link rel="stylesheet" href="${design}/chat.css"><style>body{font-size:${fs}}</style>`;
     const frame = $('chat');
     Object.assign(frame.style, { left: SOURCE.x + 'px', top: SOURCE.y + 'px', width: SOURCE.w + 'px', height: SOURCE.h + 'px' });
-    frame.srcdoc = `<!doctype html><html><head><meta charset="utf-8">${style}</head><body>${html}
+    frame.srcdoc = `<!doctype html><html><head><meta charset="utf-8">${style}</head><body>${sub(html)}
 <script src="${design}/chat.js"><\/script><script>${EMULATOR}<\/script></body></html>`;
 }
 
