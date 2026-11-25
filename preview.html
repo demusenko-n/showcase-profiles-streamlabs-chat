@@ -91,7 +91,7 @@ async function build() {
     /* Настраиваемые поля: значения по умолчанию из fields.json,
        любое можно переопределить в адресе, например ?nickColor=twitch&nickSize=140 */
     const fieldsJson = await read(`${design}/fields.json`);
-    const vals = {};
+    const vals = { message_hide_delay: params.get('hide') || '999999s' };
     if (fieldsJson) for (const [k, f] of Object.entries(JSON.parse(fieldsJson))) vals[k] = f.value;
     for (const [k, v] of params) if (!['d', 'fs', 'clean', 'still'].includes(k)) vals[k] = v;
     const sub = t => t.replace(/\{(\w+)\}/g, (m, k) => k in vals ? vals[k] : m);
