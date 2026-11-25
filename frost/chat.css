@@ -1,0 +1,234 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,600;1,700&family=Nunito:wght@500;600;700&display=swap');
+
+/*
+ * Frost — чат для панели «chat» (Streamlabs Chat Box → Custom HTML/CSS).
+ * Размер источника под bg.jpg 1280×720: 290×470, позиция x 944, y 126.
+ */
+
+:root {
+    --ink:          #34466b;   /* текст сообщения */
+    --nick:         #4f68a0;   /* ник */
+    --accent:       #8299c8;   /* ✦ и линия цитаты */
+    --muted:        #6f82ab;   /* текст цитаты */
+
+    --card-top:     rgba(255, 255, 255, 0.66);
+    --card-bottom:  rgba(244, 247, 255, 0.46);
+    --card-border:  rgba(255, 255, 255, 0.90);
+    --card-shadow:  rgba(93, 124, 188, 0.16);
+
+    --fade:         3.2em;     /* высота растворения сверху */
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html, body {
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+}
+
+body {
+    background: transparent;
+    font-family: 'Nunito', 'Segoe UI', sans-serif;
+    font-size: {font_size};
+    color: var(--ink);
+    text-shadow: none;
+
+    /* старые сообщения плавно растворяются, а не обрезаются под заголовком */
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 var(--fade));
+            mask-image: linear-gradient(to bottom, transparent 0, #000 var(--fade));
+}
+
+/* Контейнер чата */
+
+#log {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    padding: 0 0.35em 0.35em;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5em;
+}
+
+/* Сообщение */
+
+#log > div {
+    display: block;
+    width: 100%;
+    animation: frostIn 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+#log > div.deleted {
+    display: none;
+}
+
+/* Ник */
+
+#log .meta {
+    display: flex;
+    align-items: center;
+    gap: 0.3em;
+    padding: 0 0.45em;
+    margin-bottom: 0.1em;
+
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-style: italic;
+    font-size: 1.08em;
+    font-weight: 700;
+    line-height: 1.25;
+    letter-spacing: 0.01em;
+    font-variant-numeric: lining-nums;
+    font-feature-settings: "lnum" 1;
+    color: var(--nick) !important;
+}
+
+#log .meta::before {
+    content: "✦";
+    flex: none;
+    font-family: 'Segoe UI Symbol', 'Nunito', sans-serif;
+    font-style: normal;
+    font-size: 0.72em;
+    color: var(--accent);
+}
+
+#log .name {
+    color: var(--nick) !important;
+    min-width: 0;
+    padding-right: 0.15em;     /* курсив не обрезается справа */
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+#log .colon {
+    display: none;
+}
+
+/* Значки: чуть приглушены, чтобы не спорить с палитрой */
+
+#log .badges {
+    display: inline-flex;
+    gap: 0.15em;
+}
+
+#log .badges:empty {
+    display: none;
+}
+
+#log .badge {
+    display: block;
+    height: 0.85em;
+    width: auto;
+    border-radius: 0.15em;
+    filter: saturate(0.7);
+    opacity: 0.9;
+}
+
+/* Карточка с текстом */
+
+#log .message {
+    display: block;
+    width: 100%;
+    padding: 0.4em 0.7em 0.45em;
+
+    font-size: 1em;
+    font-weight: 600;
+    line-height: 1.35;
+    color: var(--ink);
+
+    background: linear-gradient(160deg, var(--card-top), var(--card-bottom));
+    border: 1px solid var(--card-border);
+    border-radius: 0.7em;
+    box-shadow:
+        0 0.2em 0.8em var(--card-shadow),
+        inset 0 1px 0 rgba(255, 255, 255, 0.9);
+
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+/* Эмоуты */
+
+#log .emote {
+    display: inline-block;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+    vertical-align: middle;
+    margin: -0.15em 0.05em;
+}
+
+#log .emote img {
+    display: inline-block;
+    height: 1.5em;
+    opacity: 0;
+}
+
+/* Цитата ответа (её добавляет chat.js) */
+
+#log .reply {
+    position: relative;
+    display: block;
+    margin: 0.05em 0 0.35em;
+    padding: 0.25em 0.55em 0.3em 1.25em;
+
+    background: rgba(130, 153, 200, 0.12);
+    border-radius: 0.45em;
+
+    font-size: 0.8em;
+    line-height: 1.3;
+}
+
+/* крючок ↳, нарисованный рамкой: не зависит от шрифта */
+#log .reply::before {
+    content: "";
+    position: absolute;
+    left: 0.5em;
+    top: 0.35em;
+    width: 0.45em;
+    height: 0.55em;
+    border-left: 0.12em solid var(--accent);
+    border-bottom: 0.12em solid var(--accent);
+    border-bottom-left-radius: 0.3em;
+}
+
+#log .reply-author {
+    display: block;
+    color: var(--nick);
+    font-weight: 700;
+
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+#log .reply-body {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+
+    color: var(--muted);
+    font-weight: 500;
+
+    overflow: hidden;
+    overflow-wrap: anywhere;
+}
+
+/* Появление */
+
+@keyframes frostIn {
+    from {
+        opacity: 0;
+        transform: translateY(0.5em);
+        filter: blur(3px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+        filter: none;
+    }
+}

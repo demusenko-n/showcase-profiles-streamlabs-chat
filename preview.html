@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Chat preview</title>
+<style>
+    html, body { margin: 0; height: 100%; background: #1d2333; color: #dfe6fb; font: 14px/1.4 system-ui, sans-serif; }
+    #bar { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; padding: 8px 12px; background: #141927; }
+    #bar label { display: inline-flex; gap: 6px; align-items: center; }
+    #bar button { background: #34466b; color: #fff; border: 0; border-radius: 6px; padding: 5px 10px; cursor: pointer; }
+    #bar button:hover { background: #4f68a0; }
+    #bar .note { opacity: .6; font-size: 12px; }
+    #stage-wrap { position: relative; overflow: hidden; }
+    #stage { position: absolute; left: 0; top: 0; width: 1280px; height: 720px; transform-origin: 0 0;
+             background: url(bg.jpg) center / cover no-repeat; }
+    #chat { position: absolute; border: 0; background: transparent; }
+    #stage.guide #chat { outline: 1px dashed rgba(255, 0, 90, .7); }
+    body.clean #bar { display: none; }
+</style>
+</head>
+<body>
+<div id="bar">
+    <label>Дизайн <input id="design" size="10"></label>
+    <label>Шрифт <input id="font" type="range" min="12" max="24" value="16"> <span id="fontv">16px</span></label>
+    <button id="add">+ сообщение</button>
+    <button id="reply">+ ответ</button>
+    <button id="long">+ длинное</button>
+    <button id="del">удалить последнее</button>
+    <label><input id="auto" type="checkbox" checked> авто</label>
+    <label><input id="guide" type="checkbox"> рамка источника</label>
+    <span class="note" id="note"></span>
+</div>
+<div id="stage-wrap"><div id="stage"><iframe id="chat"></iframe></div></div>
+
+<script>
+/* Позиция и размер браузерного источника в OBS (под bg.jpg 1280×720) */
+const SOURCE = { x: 944, y: 126, w: 290, h: 470 };
+
+const params = new URLSearchParams(location.search);
+const design = params.get('d') || 'frost';
+if (params.has('clean')) document.body.classList.add('clean');
+
+const $ = id => document.getElementById(id);
+$('design').value = design;
+$('design').addEventListener('change', e => { params.set('d', e.target.value); location.search = params; });
+$('font').value = params.get('fs') || 16;
+
+/* Шаблон Streamlabs по умолчанию — на случай, если файл открыт двойным кликом
+   и браузер не даёт прочитать chat.html (file://). */
+const FALLBACK_HTML = `<div id="log" class="sl__chat__layout"></div>
+<script type="text/template" id="chatlist_item">
+    <div data-from="{from}" data-id="{messageId}">
+        <span class="meta" style="color: {color}">
+            <span class="badges"></span>
+            <span class="name">{from}</span>
+        </span>
+        <span class="message">{message}</span>
+    </div>
+<\/script>`;
+
+async function read(path) {
+    try { const r = await fetch(path); if (r.ok) return await r.text(); } catch (e) {}
+    return null;
+}
+
+/* Эмулятор Streamlabs внутри iframe */
+const EMULATOR = `
+const tpl = document.getElementById('chatlist_item').innerHTML;
+const log = document.getElementById('log');
+function fill(s, d) { return s.replace(/\\{(\\w+)\\}/g, (m, k) => k in d ? d[k] : m); }
+addEventListener('message', ({ data }) => {
+    if (data.type === 'font') { document.body.style.fontSize = data.value; return; }
+    if (data.type === 'delete') { const last = log.lastElementChild; if (last) last.classList.add('deleted'); return; }
+    if (data.type !== 'msg') return;
+    const m = data.msg;
+    const wrap = document.createElement('div');
+    wrap.innerHTML = fill(tpl, { from: m.from, messageId: m.id, color: m.color, message: m.html });
+    const row = wrap.firstElementChild;
+    const badges = row.querySelector('.badges');
+    (m.badges || []).forEach(src => { const i = document.createElement('img'); i.className = 'badge'; i.src = src; badges.append(i); });
+    log.append(row);
+    while (log.children.length > 40) log.firstElementChild.remove();
+    document.dispatchEvent(new CustomEvent('onEventReceived', { detail: { command: 'PRIVMSG', from: m.from, messageId: m.id, body: m.text, tags: m.tags } }));
+});
+parent.postMessage({ type: 'ready' }, '*');
+`;
+
+async function build() {
+    const html = (await read(`${design}/chat.html`)) ?? FALLBACK_HTML;
+    const css = await read(`${design}/chat.css`);
+    $('note').textContent = css === null
+        ? 'file:// — шаблон встроенный, CSS подключён ссылкой'
+        : `${design}/ — файлы прочитаны`;
+    const fs = $('font').value + 'px';
+    const style = css !== null
+        ? `<style>${css.replaceAll('{font_size}', fs)}</style>`
+        : `<link rel="stylesheet" href="${design}/chat.css"><style>body{font-size:${fs}}</style>`;
+    const frame = $('chat');
+    Object.assign(frame.style, { left: SOURCE.x + 'px', top: SOURCE.y + 'px', width: SOURCE.w + 'px', height: SOURCE.h + 'px' });
+    frame.srcdoc = `<!doctype html><html><head><meta charset="utf-8">${style}</head><body>${html}
+<script src="${design}/chat.js"><\/script><script>${EMULATOR}<\/script></body></html>`;
+}
+
+function fit() {
+    const wrap = $('stage-wrap');
+    const top = document.body.classList.contains('clean') ? 0 : $('bar').offsetHeight;
+    const s = Math.min(innerWidth / 1280, (innerHeight - top) / 720);
+    $('stage').style.transform = `scale(${s})`;
+    wrap.style.width = 1280 * s + 'px';
+    wrap.style.height = 720 * s + 'px';
+}
+addEventListener('resize', fit);
+
+/* ---------- тестовые сообщения ---------- */
+const E = id => `https://static-cdn.jtvnw.net/emoticons/v2/${id}/default/dark/1.0`;
+const B = id => `https://static-cdn.jtvnw.net/badges/v1/${id}/1`;
+const BADGE = {
+    broadcaster: B('5527c58c-fb7d-422d-b71b-f309dcb85cc1'),
+    mod: B('3267646d-33f0-4b17-b3df-f923a41db1d0'),
+    vip: B('b817aba4-fad8-49e2-b88a-7cc744dfa6ec'),
+    sub: B('5d9f2208-5dd8-11e7-8513-2ff4adfae661'),
+};
+const emote = id => `<span class="emote" style="background-image: url(${E(id)})"><img src="${E(id)}"></span>`;
+
+const USERS = [
+    { from: 'JI_IO_6_O_B_b', color: '#1E90FF', badges: [BADGE.sub] },
+    { from: 'redins1de', color: '#FF4500', badges: [BADGE.vip, BADGE.sub] },
+    { from: 'Fossabot', color: '#00FF7F', badges: [BADGE.mod] },
+    { from: 'chynaO_o', color: '#8A2BE2', badges: [BADGE.broadcaster] },
+    { from: 'sleepy_mita', color: '#DAA520', badges: [] },
+    { from: 'очень_длинный_ник_зрителя_2009', color: '#FF69B4', badges: [BADGE.sub] },
+];
+const TEXTS = [
+    'дароу', 'пливет', 'кактус', '!testelo sleepy-mita:720',
+    `какой красивый оверлей ${emote(25)}`, 'это лучший стрим недели', `${emote(425618)} ${emote(425618)}`,
+    'а во сколько завтра стрим?', 'gg wp', `люблю этот чат ${emote(9)}`,
+];
+const LONG = 'sleepy-mita • ELO: 2417 • За 720ч: +206 [💚 24 / ❤️ 17] — и ещё немного текста, чтобы проверить перенос строк на три-четыре строки в узкой колонке';
+
+let n = 0;
+const pick = a => a[Math.floor(Math.random() * a.length)];
+const strip = h => h.replace(/<[^>]+>/g, '').trim();
+let lastMsg = { from: 'JI_IO_6_O_B_b', text: '!testelo sleepy-mita:720' };
+
+function send(user, html, extraTags = {}) {
+    const id = 'msg-' + (++n);
+    const text = strip(html);
+    $('chat').contentWindow.postMessage({ type: 'msg', msg: { ...user, id, html, text, tags: { id, ...extraTags } } }, '*');
+    lastMsg = { from: user.from, text: text || '(эмоут)' };
+}
+const sendRandom = () => send(pick(USERS), pick(TEXTS));
+function sendReply() {
+    const parent = lastMsg;
+    send(USERS[2], `@${parent.from} ${pick(['согласен', 'да-да', 'держи: ' + LONG.slice(0, 40)])}`, {
+        'reply-parent-msg-id': 'p' + n,
+        'reply-parent-display-name': parent.from,
+        'reply-parent-user-login': parent.from.toLowerCase(),
+        'reply-parent-msg-body': parent.text.replace(/ /g, '\\s'),
+    });
+}
+
+$('add').onclick = sendRandom;
+$('reply').onclick = sendReply;
+$('long').onclick = () => send(USERS[2], LONG);
+$('del').onclick = () => $('chat').contentWindow.postMessage({ type: 'delete' }, '*');
+$('font').oninput = e => {
+    $('fontv').textContent = e.target.value + 'px';
+    $('chat').contentWindow.postMessage({ type: 'font', value: e.target.value + 'px' }, '*');
+};
+$('fontv').textContent = $('font').value + 'px';
+$('guide').onchange = e => $('stage').classList.toggle('guide', e.target.checked);
+
+/* стартовая лента, похожая на реальный чат */
+function seed() {
+    const s = [
+        () => send(USERS[3], `${emote(25)} ${emote(25)}`),
+        () => send(USERS[0], 'дароу'),
+        () => send(USERS[1], 'пливет'),
+        () => send(USERS[0], '!testelo sleepy-mita:720'),
+        () => { lastMsg = { from: 'JI_IO_6_O_B_b', text: '!testelo sleepy-mita:720' }; sendReply(); },
+        () => send(USERS[5], 'а можно вопрос: как называется этот трек? очень атмосферно'),
+        () => send(USERS[4], `ахах ${emote(425618)}`),
+        () => send(USERS[1], 'кактус'),
+    ];
+    s.forEach((f, i) => setTimeout(f, 60 * i));
+}
+
+let timer;
+addEventListener('message', ({ data }) => {
+    if (data?.type !== 'ready') return;
+    seed();
+    clearInterval(timer);
+    timer = setInterval(() => { if ($('auto').checked && !params.has('still')) Math.random() < .2 ? sendReply() : sendRandom(); }, 2200);
+});
+
+build().then(fit);
+fit();
+</script>
+</body>
+</html>
