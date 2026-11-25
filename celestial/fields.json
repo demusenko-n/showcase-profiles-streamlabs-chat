@@ -1,0 +1,48 @@
+{
+    "nickSize": {
+        "label": "Размер ника, % от текста (оригинал: 110)",
+        "type": "slider",
+        "value": 110,
+        "min": 100,
+        "max": 150,
+        "steps": 5
+    },
+    "nickColor": {
+        "label": "Цвет ника",
+        "type": "dropdown",
+        "value": "palette",
+        "options": {
+            "palette": "Оригинал: единый голубой",
+            "twitch": "Цвет из Twitch"
+        }
+    },
+    "badgeStyle": {
+        "label": "Значки",
+        "type": "dropdown",
+        "value": "muted",
+        "options": {
+            "muted": "Оригинал: в тон палитры",
+            "color": "Цветные",
+            "hide": "Скрыть"
+        }
+    },
+    "glowStyle": {
+        "label": "Ореол вокруг текста",
+        "type": "dropdown",
+        "value": "soft",
+        "options": {
+            "soft": "Оригинал: мягкий, для светлого фона",
+            "strong": "Плотнее, для пёстрого фона",
+            "night": "Ночной: светлый текст, для тёмного фона"
+        }
+    },
+    "grouping": {
+        "label": "Несколько сообщений подряд от одного зрителя",
+        "type": "dropdown",
+        "value": "on",
+        "options": {
+            "on": "Оригинал: под одним ником, маленькая звёздочка",
+            "off": "Ник и звезда у каждого сообщения"
+        }
+    }
+}

@@ -1,0 +1,449 @@
+@import url('https://fonts.googleapis.com/css2?family=Comfortaa:wght@600;700&family=M+PLUS+Rounded+1c:wght@500;700&family=Noto+Sans+KR:wght@500;700&display=swap');
+
+/*
+ * Celestial — чат-«созвездие»: без карточек, сообщения нанизаны
+ * на тонкую вертикальную нить, у каждого ника звезда ✦.
+ * Streamlabs Chat Box → Custom HTML/CSS.
+ * Размер источника под bg.jpg 1280×720: 290×470, позиция x 944, y 126.
+ */
+
+:root {
+    --ink:      #3f5689;   /* текст сообщения (глубже палитры, чтобы читался) */
+    --nick:     #5d7cbc;   /* ник */
+    --muted:    #6f86bd;   /* текст цитаты */
+    --star:     #7d96d2;   /* лучи звезды */
+    --star-core:#ffffff;   /* её сердцевина */
+    --line:     #ffffff;   /* нить */
+    --line-sub: #89a0d8;   /* её тень, чтобы нить была видна на светлом */
+    --star-glow: rgba(93, 124, 188, 0.6);
+
+    /* ореол текста: три слоя, от плотного к рассеянному */
+    --halo-1: #ffffff;
+    --halo-2: rgba(255, 255, 255, 0.9);
+    --halo-3: rgba(230, 235, 253, 0.75);
+
+    --fade: 3.4em;         /* высота растворения сверху */
+}
+
+/* Масштаб ника. Зарегистрированное свойство: если поле не подставилось
+   (файл открыт без Streamlabs), берётся оригинал 1.1, а не ломается всё. */
+@property --ns {
+    syntax: '<number>';
+    inherits: true;
+    initial-value: 1.1;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html, body {
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+}
+
+body {
+    background: transparent;
+    font-family: 'M PLUS Rounded 1c', 'Noto Sans KR', 'Segoe UI', sans-serif;
+    font-synthesis: none;
+    font-size: {font_size};
+    color: var(--ink);
+
+    /* старые сообщения и нить плавно растворяются под заголовком */
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 var(--fade));
+            mask-image: linear-gradient(to bottom, transparent 0, #000 var(--fade));
+}
+
+/* Контейнер чата */
+
+#log {
+    --ns: calc({nickSize} * 0.01);      /* поле «Размер ника» */
+    --rail: 0.6em;                      /* где проходит нить */
+    --indent: 1.55em;                   /* где начинается текст */
+    --gap: 0.8em;                       /* между сообщениями */
+
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    padding: 0 0.6em 1em 0.6em;         /* отступ от звёздочек в нижних углах */
+
+    text-shadow:
+        0 0 0.1em var(--halo-1),
+        0 0 0.3em var(--halo-2),
+        0 0 0.8em var(--halo-3);
+}
+
+/* Режимы ореола */
+
+#log.glow-strong {
+    text-shadow:
+        0 0 0.08em #ffffff,
+        0 0 0.16em #ffffff,
+        0 0 0.3em #ffffff,
+        0 0 0.5em #ffffff,
+        0 0 0.9em rgba(230, 235, 253, 0.95),
+        0 0 1.5em rgba(215, 225, 252, 0.8);
+}
+
+#log.glow-night {
+    --ink:      #e6ebfd;
+    --nick:     #b2c0ed;
+    --muted:    #b2c0ed;
+    --star:     #9eb5eb;
+    --line:     #d7e1fc;
+    --line-sub: rgba(93, 124, 188, 0.7);
+    --star-glow: rgba(178, 192, 237, 0.7);
+    --halo-1: rgba(22, 30, 62, 0.85);
+    --halo-2: rgba(32, 44, 92, 0.7);
+    --halo-3: rgba(45, 62, 120, 0.5);
+}
+
+/* Сообщение */
+
+#log > div {
+    --star-y: calc(var(--ns) * 0.65em);   /* середина строки с ником */
+    --star-w: calc(var(--ns) * 0.72em);
+    --star-h: calc(var(--ns) * 1.02em);
+
+    position: relative;
+    display: block;
+    width: 100%;
+    margin-top: var(--gap);
+    padding-left: var(--indent);
+
+    animation: rowIn 0.7s cubic-bezier(0.25, 0.7, 0.3, 1) both;
+    /* «Скрывать сообщения после N с» из настроек Streamlabs */
+    animation:
+        rowIn 0.7s cubic-bezier(0.25, 0.7, 0.3, 1) both,
+        rowOut 1.2s ease {message_hide_delay} forwards;
+}
+
+#log > div:first-child {
+    margin-top: 0;
+}
+
+#log > div.deleted {
+    display: none;
+}
+
+/* Продолжение от того же зрителя: без ника, звёздочка поменьше */
+#log:not(.group-off) > div.cont {
+    --star-y: 0.68em;
+    --star-w: 0.42em;
+    --star-h: 0.6em;
+    margin-top: calc(var(--gap) * 0.45);
+}
+
+#log:not(.group-off) > div.cont .meta {
+    display: none;
+}
+
+/* Нить: отрезок от верха промежутка до низа сообщения */
+
+#log > div::before {
+    content: "";
+    position: absolute;
+    left: calc(var(--rail) - 1px);
+    top: calc(-1 * var(--gap));
+    bottom: 0;
+    width: 2px;
+    background: linear-gradient(90deg, var(--line) 50%, var(--line-sub) 50%);
+    opacity: 0.9;
+    transform-origin: top;
+    animation: lineIn 0.5s ease-out both;
+}
+
+/* на пёстром фоне нить тоже в ореоле */
+#log.glow-strong > div::before {
+    box-shadow: 0 0 2px #ffffff, 0 0 6px rgba(255, 255, 255, 0.85);
+}
+
+#log:not(.group-off) > div.cont::before {
+    top: calc(-0.45 * var(--gap));
+}
+
+/* у самого старого нить уходит вверх, под растворение */
+#log > div:first-child::before {
+    top: -30em;
+    animation: none;
+}
+
+/* у самого нового нить заканчивается под звездой и гаснет */
+#log > div:last-child::before {
+    bottom: auto;
+    height: calc(var(--gap) + var(--star-y) + 1.3em);
+    -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 1.5em), transparent);
+            mask-image: linear-gradient(to bottom, #000 calc(100% - 1.5em), transparent);
+}
+
+#log > div:first-child:last-child::before {
+    height: calc(30em + var(--star-y) + 1.3em);
+}
+
+/* Звезда */
+
+#log .star {
+    position: absolute;
+    z-index: 1;
+    left: var(--rail);
+    top: var(--star-y);
+    width: var(--star-w);
+    height: var(--star-h);
+    margin: calc(var(--star-h) / -2) 0 0 calc(var(--star-w) / -2);
+
+    filter:
+        drop-shadow(0 0 0.05em #ffffff)
+        drop-shadow(0 0 0.18em var(--star-glow));
+    transition: width 0.6s, height 0.6s, margin 0.6s;
+    animation: starIn 0.8s 0.2s cubic-bezier(0.3, 1.5, 0.5, 1) both;
+}
+
+#log .star::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(closest-side, var(--star-core) 8%, var(--star) 45%);
+    opacity: 0.9;
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 28'%3E%3Cpath d='M10 0C11.2 8.6 13.4 12.2 20 14 13.4 15.8 11.2 19.4 10 28 8.8 19.4 6.6 15.8 0 14 6.6 12.2 8.8 8.6 10 0Z'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
+            mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 28'%3E%3Cpath d='M10 0C11.2 8.6 13.4 12.2 20 14 13.4 15.8 11.2 19.4 10 28 8.8 19.4 6.6 15.8 0 14 6.6 12.2 8.8 8.6 10 0Z'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
+}
+
+/* светлое пятно под звездой: разрывает нить, звезда «нанизана» на неё */
+#log .star::after {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    left: 50%;
+    top: 50%;
+    width: 0.55em;
+    height: 0.55em;
+    margin: -0.275em 0 0 -0.275em;
+    border-radius: 50%;
+    background: radial-gradient(closest-side, var(--halo-1) 35%, transparent);
+}
+
+/* самая новая звезда крупнее и мерцает */
+#log > div:last-child {
+    --star-w: calc(var(--ns) * 0.92em);
+    --star-h: calc(var(--ns) * 1.3em);
+}
+
+#log:not(.group-off) > div.cont:last-child {
+    --star-w: 0.56em;
+    --star-h: 0.8em;
+}
+
+#log > div:last-child .star::before {
+    opacity: 1;
+    animation: twinkle 3.6s 1s ease-in-out infinite;
+}
+
+/* Ник */
+
+#log .meta {
+    display: flex;
+    align-items: center;
+    gap: 0.3em;
+
+    font-family: 'Comfortaa', 'M PLUS Rounded 1c', 'Noto Sans KR', sans-serif;
+    font-size: calc(var(--ns) * 1em);
+    font-weight: 700;
+    line-height: 1.3;
+    letter-spacing: 0.01em;
+    font-size-adjust: from-font;   /* иероглифы по высоте как латиница */
+}
+
+#log:not(.nick-twitch) .meta,
+#log:not(.nick-twitch) .name {
+    color: var(--nick) !important;
+}
+
+/* Цвет из Twitch, притянутый к палитре: жёлтые и салатовые ники
+   иначе пропадают в светлом ореоле */
+#log.nick-twitch .name {
+    color: inherit;
+    color: color-mix(in oklab, currentColor 68%, #2b3a6b);
+}
+
+#log.nick-twitch.glow-night .name {
+    color: inherit;
+    color: color-mix(in oklab, currentColor 62%, #ffffff);
+}
+
+#log .name {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+#log .colon {
+    display: none;
+}
+
+/* Значки */
+
+#log .badges {
+    display: inline-flex;
+    flex: none;
+    gap: 0.15em;
+}
+
+#log .badges:empty,
+#log.badges-hide .badges {
+    display: none;
+}
+
+#log .badge {
+    display: block;
+    height: 0.8em;
+    width: auto;
+    border-radius: 0.15em;
+    filter: grayscale(1) sepia(1) hue-rotate(185deg) saturate(1.4) brightness(1.05);
+    opacity: 0.8;
+}
+
+#log.glow-night .badge {
+    filter: grayscale(1) sepia(1) hue-rotate(185deg) saturate(1.2) brightness(1.35);
+}
+
+#log.badges-color .badge {
+    filter: none;
+    opacity: 1;
+}
+
+/* Текст */
+
+#log .message {
+    display: block;
+    width: 100%;
+    padding-top: 0.05em;
+
+    font-size: 1em;
+    font-weight: 500;
+    line-height: 1.36;
+    color: var(--ink);
+
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+/* Эмоуты */
+
+#log .emote {
+    display: inline-block;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+    vertical-align: middle;
+    margin: -0.15em 0.05em;
+}
+
+#log .emote img {
+    display: inline-block;
+    height: 1.4em;
+    opacity: 0;
+}
+
+/* Цитата ответа (её добавляет chat.js): ответвление от нити */
+
+#log .reply {
+    position: relative;
+    display: block;
+    margin: 0.1em 0 0.25em;
+    padding: 0 0 0.05em 0.55em;
+    border-left: 1px solid var(--line-sub);
+
+    font-size: 0.8em;
+    line-height: 1.3;
+}
+
+/* пунктирная веточка от нити к цитате */
+#log .reply::before {
+    content: "";
+    position: absolute;
+    top: 0.65em;
+    right: 100%;
+    width: calc((var(--indent) - var(--rail)) / 0.8 - 0.25em);
+    border-top: 1px dashed var(--star);
+    opacity: 0.8;
+}
+
+#log .reply-author {
+    display: block;
+    color: var(--nick);
+    font-family: 'Comfortaa', 'M PLUS Rounded 1c', 'Noto Sans KR', sans-serif;
+    font-weight: 700;
+
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+#log .reply-body {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+
+    color: var(--muted);
+    font-weight: 500;
+
+    overflow: hidden;
+    overflow-wrap: anywhere;
+}
+
+/* Появление: нить дорастает, затем вспыхивает звезда */
+
+@keyframes rowIn {
+    from {
+        opacity: 0;
+        transform: translateY(0.4em);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@keyframes rowOut {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+    }
+}
+
+@keyframes lineIn {
+    from {
+        transform: scaleY(0);
+    }
+    to {
+        transform: scaleY(1);
+    }
+}
+
+@keyframes starIn {
+    from {
+        opacity: 0;
+        transform: scale(0) rotate(-90deg);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@keyframes twinkle {
+    0%, 100% {
+        transform: scale(1);
+        filter: brightness(1);
+    }
+    50% {
+        transform: scale(1.12);
+        filter: brightness(1.15);
+    }
+}
