@@ -1,0 +1,302 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,500;1,600;1,700&family=Noto+Serif+JP:wght@500;600;700&family=Noto+Serif+KR:wght@500;600;700&display=swap');
+
+/*
+ * Whisper — чат без карточек: курсивная антиква с мягким ореолом,
+ * тонкие светлые линии и ✦. Streamlabs Chat Box → Custom HTML/CSS.
+ * Размер источника под bg.jpg 1280×720: 290×470, позиция x 944, y 126.
+ */
+
+:root {
+    --ink:      #4a6399;   /* текст сообщения (чуть глубже #5d7cbc, чтобы читался) */
+    --nick:     #5d7cbc;   /* ник */
+    --accent:   #89a0d8;   /* ✦ */
+    --muted:    #6f86bd;   /* текст цитаты */
+    --line:     #ffffff;   /* тонкая линия после ника */
+    --line-sub: #9eb5eb;   /* её подложка, чтобы линия была видна на светлом */
+
+    /* ореол: три слоя, от плотного к рассеянному */
+    --halo-1: #ffffff;
+    --halo-2: rgba(255, 255, 255, 0.9);
+    --halo-3: rgba(230, 235, 253, 0.75);
+    --halo-r1: 0.1em;
+    --halo-r2: 0.3em;
+    --halo-r3: 0.8em;
+
+    --fade: 3.4em;         /* высота растворения сверху */
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html, body {
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+}
+
+body {
+    background: transparent;
+    font-family: 'Cormorant Garamond', 'Noto Serif JP', 'Noto Serif KR', Georgia, serif;
+    font-style: italic;
+    font-synthesis: none;      /* иероглифы не «заваливаются» фальшивым курсивом */
+    font-size: {font_size};
+    font-variant-numeric: lining-nums;
+    font-feature-settings: "lnum" 1;
+    color: var(--ink);
+
+    /* старые сообщения плавно растворяются под заголовком */
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 var(--fade));
+            mask-image: linear-gradient(to bottom, transparent 0, #000 var(--fade));
+}
+
+/* Режимы ореола */
+
+/* плотный: несколько слоёв белого, текст лежит на «облачке» */
+#log.glow-strong {
+    text-shadow:
+        0 0 0.08em #ffffff,
+        0 0 0.16em #ffffff,
+        0 0 0.3em #ffffff,
+        0 0 0.5em #ffffff,
+        0 0 0.9em rgba(230, 235, 253, 0.95),
+        0 0 1.5em rgba(215, 225, 252, 0.8);
+}
+
+#log.glow-night {
+    --ink:      #e6ebfd;
+    --nick:     #b2c0ed;
+    --accent:   #9eb5eb;
+    --muted:    #b2c0ed;
+    --line:     #d7e1fc;
+    --line-sub: rgba(93, 124, 188, 0.6);
+    --halo-1: rgba(22, 30, 62, 0.85);
+    --halo-2: rgba(32, 44, 92, 0.7);
+    --halo-3: rgba(45, 62, 120, 0.5);
+}
+
+/* Контейнер чата */
+
+#log {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    padding: 0 0.6em 0.8em;    /* отступ от звёздочек в нижних углах */
+    display: flex;
+    flex-direction: column;
+    gap: 0.55em;
+
+    text-shadow:
+        0 0 var(--halo-r1) var(--halo-1),
+        0 0 var(--halo-r2) var(--halo-2),
+        0 0 var(--halo-r3) var(--halo-3);
+}
+
+/* Сообщение */
+
+#log > div {
+    display: block;
+    width: 100%;
+    animation: whisperIn 0.9s cubic-bezier(0.25, 0.7, 0.3, 1) both;
+    /* «Скрывать сообщения после N с» из настроек Streamlabs */
+    animation:
+        whisperIn 0.9s cubic-bezier(0.25, 0.7, 0.3, 1) both,
+        whisperOut 1.2s ease {message_hide_delay} forwards;
+}
+
+#log > div.deleted {
+    display: none;
+}
+
+/* Ник: ✦ ник ———— */
+
+#log .meta {
+    display: flex;
+    align-items: center;
+    gap: 0.3em;
+
+    font-size: 1.15em;                        /* оригинал (без Streamlabs) */
+    font-size: calc({nickSize} * 0.01em);     /* поле «Размер ника» */
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: 0.01em;
+    font-size-adjust: from-font;   /* иероглифы по высоте как латиница */
+}
+
+#log:not(.nick-twitch) .meta,
+#log:not(.nick-twitch) .name {
+    color: var(--nick) !important;
+}
+
+/* Цвет из Twitch, притянутый к палитре: жёлтые и салатовые ники
+   иначе пропадают в светлом ореоле */
+#log.nick-twitch .name {
+    color: inherit;
+    color: color-mix(in oklab, currentColor 68%, #2b3a6b);
+}
+
+#log.nick-twitch.glow-night .name {
+    color: inherit;
+    color: color-mix(in oklab, currentColor 62%, #ffffff);
+}
+
+#log .meta::before {
+    content: "✦";
+    flex: none;
+    font-family: 'Segoe UI Symbol', 'Noto Serif JP', serif;
+    font-style: normal;
+    font-weight: 400;
+    font-size: 0.72em;
+    color: var(--accent);
+}
+
+/* тонкая линия до правого края, гаснет к концу */
+#log .meta::after {
+    content: "";
+    flex: 1 1 0;
+    min-width: 1.2em;
+    height: 2px;
+    margin-left: 0.25em;
+    margin-top: 0.15em;
+    background:
+        linear-gradient(90deg, var(--line), transparent) top / 100% 1px no-repeat,
+        linear-gradient(90deg, var(--line-sub), transparent 80%) bottom / 100% 1px no-repeat;
+    opacity: 0.9;
+}
+
+#log .name {
+    flex: 0 1 auto;
+    min-width: 0;
+    padding-right: 0.15em;     /* курсив не обрезается справа */
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+#log .colon {
+    display: none;
+}
+
+/* Значки */
+
+#log .badges {
+    display: inline-flex;
+    flex: none;
+    gap: 0.15em;
+}
+
+#log .badges:empty,
+#log.badges-hide .badges {
+    display: none;
+}
+
+#log .badge {
+    display: block;
+    height: 0.8em;
+    width: auto;
+    border-radius: 0.15em;
+    filter: grayscale(1) sepia(1) hue-rotate(185deg) saturate(1.4) brightness(1.05);
+    opacity: 0.8;
+}
+
+#log.glow-night .badge {
+    filter: grayscale(1) sepia(1) hue-rotate(185deg) saturate(1.2) brightness(1.35);
+}
+
+#log.badges-color .badge {
+    filter: none;
+    opacity: 1;
+}
+
+/* Текст */
+
+#log .message {
+    display: block;
+    width: 100%;
+    padding: 0.05em 0 0 0.95em;   /* под ником, после ✦ */
+
+    font-size: 1.12em;
+    font-weight: 600;
+    line-height: 1.3;
+    color: var(--ink);
+
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+/* Эмоуты */
+
+#log .emote {
+    display: inline-block;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+    vertical-align: middle;
+    margin: -0.15em 0.05em;
+}
+
+#log .emote img {
+    display: inline-block;
+    height: 1.4em;
+    opacity: 0;
+}
+
+/* Цитата ответа (её добавляет chat.js) */
+
+#log .reply {
+    display: block;
+    margin: 0.05em 0 0.2em;
+    padding: 0 0 0.05em 0.55em;
+    border-left: 1px solid var(--line-sub);
+
+    font-size: 0.8em;
+    line-height: 1.25;
+}
+
+#log .reply-author {
+    display: block;
+    color: var(--nick);
+    font-weight: 700;
+
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+#log .reply-body {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+
+    color: var(--muted);
+    font-weight: 500;
+
+    overflow: hidden;
+    overflow-wrap: anywhere;
+}
+
+/* Появление: проступает из дымки */
+
+@keyframes whisperIn {
+    from {
+        opacity: 0;
+        transform: translateY(0.35em);
+        filter: blur(4px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+        filter: none;
+    }
+}
+
+@keyframes whisperOut {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+        filter: blur(3px);
+    }
+}
