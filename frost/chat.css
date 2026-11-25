@@ -1,7 +1,18 @@
 @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,600;1,700&family=Nunito:wght@500;600;700&family=Noto+Sans+JP:wght@500;600;700&family=Noto+Sans+KR:wght@500;600;700&family=Noto+Serif+JP:wght@600&family=Noto+Serif+KR:wght@600&display=swap');
 
 /*
- * Frost — чат для панели «chat» (Streamlabs Chat Box → Custom HTML/CSS).
+ * Frost — чат для панели «chat» (Streamlabs Chat Box → Custom HTML/CSS/JS).
+ *
+ * Поле «Раскладка»:
+ *  • оригинал — ник всегда над карточкой;
+ *  • адаптивная — короткий ник + короткий текст идут в строку «ник: текст»,
+ *    длинные — с ником сверху; сообщения подряд от одного зрителя
+ *    собираются в одну карточку, каждое с новой строки;
+ *  • в строку — всегда «ник: текст» внутри карточки.
+ * Ответ всегда отдельной карточкой с цитатой и ником сверху.
+ *
+ * Раскладку выбирает chat.js до первой отрисовки сообщения (классы
+ * is-inline, g-next, g-cont, is-reply). Без JS — оригинал.
  * Размер источника под bg.jpg 1280×720: 290×470, позиция x 944, y 126.
  */
 
@@ -12,13 +23,14 @@
     --muted:        #6f82ab;   /* текст цитаты */
 
     /* Карточки непрозрачные: OBS/Streamlabs смешивает полупрозрачный
-       белый с фоном неверно, и он выходит серым. Цвета подобраны под панель. */
+       белый с фоном неверно, и он выходит серым. */
     --card-top:     #f6f8ff;
     --card-bottom:  #e9effd;
     --card-border:  #ffffff;
     --card-shadow:  rgba(93, 124, 188, 0.18);
     --quote-bg:     #e2e9f8;
 
+    --radius:       0.7em;
     --fade:         3.2em;     /* высота растворения сверху */
 }
 
@@ -35,12 +47,11 @@ html, body {
 body {
     background: transparent;
     font-family: 'Nunito', 'Noto Sans JP', 'Noto Sans KR', 'Segoe UI', sans-serif;
-    font-synthesis: none;      /* иероглифы не «заваливаются» фальшивым курсивом */
+    font-synthesis: none;
     font-size: {font_size};
     color: var(--ink);
     text-shadow: none;
 
-    /* старые сообщения плавно растворяются, а не обрезаются под заголовком */
     -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 var(--fade));
             mask-image: linear-gradient(to bottom, transparent 0, #000 var(--fade));
 }
@@ -52,10 +63,9 @@ body {
     bottom: 0;
     left: 0;
     width: 100%;
-    padding: 0 0.35em 0.7em;   /* отступ от звёздочек в нижних углах */
+    padding: 0 0.35em 0.7em;
     display: flex;
     flex-direction: column;
-    gap: 0.5em;
 }
 
 /* Сообщение */
@@ -64,17 +74,25 @@ body {
     display: block;
     width: 100%;
     animation: frostIn 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both;
-    /* «Скрывать сообщения после N с» из настроек Streamlabs */
     animation:
         frostIn 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both,
         frostOut 0.6s ease {message_hide_delay} forwards;
+}
+
+#log > div + div {
+    margin-top: 0.5em;
+}
+
+/* продолжение группы прилипает к предыдущему сообщению */
+#log > div.g-cont {
+    margin-top: 0;
 }
 
 #log > div.deleted {
     display: none;
 }
 
-/* Ник */
+/* ---------- Ник над карточкой (как во frost) ---------- */
 
 #log .meta {
     display: flex;
@@ -90,13 +108,10 @@ body {
     font-weight: 700;
     line-height: 1.25;
     letter-spacing: 0.01em;
-    font-size-adjust: from-font;   /* иероглифы по высоте как латиница */
+    font-size-adjust: from-font;
     font-variant-numeric: lining-nums;
     font-feature-settings: "lnum" 1;
 }
-
-/* Цвет ника: оригинал — единый голубой; nick-twitch — цвет из Twitch,
-   чуть приглушённый, чтобы жёлтые и салатовые ники читались на светлом */
 
 #log:not(.nick-twitch) .meta,
 #log:not(.nick-twitch) .name {
@@ -119,7 +134,7 @@ body {
 
 #log .name {
     min-width: 0;
-    padding-right: 0.15em;     /* курсив не обрезается справа */
+    padding-right: 0.15em;
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
@@ -129,8 +144,12 @@ body {
     display: none;
 }
 
-/* Значки: оригинал — монохромные в тон палитры; badges-color — родные цвета;
-   badges-hide — без значков */
+/* в группе ник показывается только у первого сообщения */
+#log > .g-cont .meta {
+    display: none;
+}
+
+/* Значки */
 
 #log .badges {
     display: inline-flex;
@@ -144,7 +163,7 @@ body {
 #log .badge {
     display: block;
     height: 0.85em;
-    width: auto;
+    width: 0.85em;             /* ширина известна до загрузки: замер не «прыгает» */
     border-radius: 0.15em;
     filter: grayscale(1) sepia(1) hue-rotate(185deg) saturate(1.6) brightness(0.95);
     opacity: 0.85;
@@ -159,27 +178,117 @@ body {
     display: none;
 }
 
-/* Карточка с текстом */
+/* ---------- Карточка ----------
+   В строку карточкой служит сам ряд, иначе — блок .message */
 
-#log .message {
+#log > .is-inline,
+#log > :not(.is-inline) > .message {
     display: block;
+    position: relative;
     width: 100%;
     padding: 0.4em 0.7em 0.45em;
 
+    background: linear-gradient(160deg, var(--card-top), var(--card-bottom));
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius);
+    box-shadow:
+        0 0.2em 0.8em var(--card-shadow),
+        inset 0 1px 0 #ffffff;
+}
+
+#log .message {
     font-size: 1em;
     font-weight: 600;
     line-height: 1.35;
     color: var(--ink);
 
-    background: linear-gradient(160deg, var(--card-top), var(--card-bottom));
-    border: 1px solid var(--card-border);
-    border-radius: 0.7em;
-    box-shadow:
-        0 0.2em 0.8em var(--card-shadow),
-        inset 0 1px 0 #ffffff;
-
     white-space: normal;
     overflow-wrap: anywhere;
+}
+
+/* ---------- В строку: «ник: текст» внутри карточки ---------- */
+
+#log > .is-inline {
+    font-weight: 600;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+
+#log > .is-inline .meta {
+    display: inline;
+    padding: 0;
+    margin: 0;                 /* пробел после ника даёт сам шаблон */
+    line-height: 1;
+}
+
+#log > .is-inline .meta::before {
+    display: none;
+}
+
+#log > .is-inline .badges {
+    vertical-align: -0.05em;
+    margin-right: 0.2em;
+}
+
+#log > .is-inline .name {
+    overflow: visible;
+    white-space: nowrap;
+}
+
+#log > .is-inline .name::after {
+    content: ":";
+    font-style: normal;
+}
+
+#log > .is-inline .message {
+    display: inline;
+}
+
+/* замер (chat.js): всё в одну строку, чтобы узнать, влезает ли */
+#log > .a-measure,
+#log > .a-measure .message {
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+#log > .a-measure .emote img {
+    min-width: 1.5em;          /* эмоут ещё не загрузился — считаем квадратным */
+}
+
+/* ---------- Группа: одна карточка на несколько сообщений ---------- */
+
+#log > .g-next.is-inline,
+#log > .g-next:not(.is-inline) > .message {
+    border-bottom-width: 0;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    clip-path: inset(-2em -2em 0 -2em);   /* тень не ложится на соседа */
+}
+
+/* в группе карточка однотонная: иначе у каждой части свой градиент
+   и на стыке видна полоса */
+#log > .g-next.is-inline,
+#log > .g-next > .message,
+#log > .g-cont > .message {
+    background: #eff3fe;
+}
+
+/* сообщения в группе просто идут с новой строки */
+#log > .g-next > .message {
+    padding-bottom: 0.1em;
+}
+
+#log > .g-cont > .message {
+    padding-top: 0.1em;
+    border-top-width: 0;
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+    box-shadow: 0 0.2em 0.8em var(--card-shadow);
+    clip-path: inset(0 -2em -2em -2em);
+}
+
+#log > .g-cont.g-next > .message {
+    clip-path: inset(0 -2em);
 }
 
 /* Эмоуты */
@@ -214,7 +323,6 @@ body {
     line-height: 1.3;
 }
 
-/* крючок ↳, нарисованный рамкой: не зависит от шрифта */
 #log .reply::before {
     content: "";
     position: absolute;
