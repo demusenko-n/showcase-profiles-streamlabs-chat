@@ -1,0 +1,346 @@
+@import url('https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;700;800&family=Noto+Sans+KR:wght@500;700;800&display=swap');
+
+/*
+ * Sparkle Pop — спокойный чат: ник в голубой плашке, текст в белом
+ * пузыре. Новое сообщение «распускается» из ✦ маленькой вспышкой искорок.
+ * Streamlabs Chat Box → Custom HTML/CSS.
+ * Размер источника под bg.jpg 1280×720: 290×470, позиция x 944, y 126.
+ */
+
+:root {
+    --ink:          #34466b;   /* текст сообщения */
+    --muted:        #6a7fae;   /* текст цитаты */
+    --accent:       #89a0d8;   /* ✦ и линия цитаты */
+
+    /* плашка ника */
+    --pill-top:     #9eb5eb;
+    --pill-bottom:  #7891cf;
+    --pill-text:    #ffffff;
+
+    /* Пузырь непрозрачный: OBS смешивает полупрозрачный белый с фоном
+       неверно, и он выходит серым */
+    --bubble-top:    #fbfcff;
+    --bubble-bottom: #eef2fe;
+    --bubble-border: #ffffff;
+    --bubble-shadow: rgba(93, 124, 188, 0.2);
+    --quote-bg:      #e6ebfd;
+
+    --fade: 3.2em;             /* высота растворения сверху */
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html, body {
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+}
+
+body {
+    background: transparent;
+    font-family: 'M PLUS Rounded 1c', 'Noto Sans KR', 'Segoe UI', sans-serif;
+    font-synthesis: none;
+    font-size: {font_size};
+    color: var(--ink);
+    text-shadow: none;
+
+    /* старые сообщения плавно растворяются под заголовком */
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 var(--fade));
+            mask-image: linear-gradient(to bottom, transparent 0, #000 var(--fade));
+}
+
+/* Контейнер чата */
+
+#log {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    padding: 0 0.4em 0.75em 0.5em;   /* отступ от звёздочек в нижних углах */
+    display: flex;
+    flex-direction: column;
+    gap: 0.6em;
+}
+
+/* Сообщение */
+
+#log > div {
+    display: block;
+    width: 100%;
+    animation: popIn 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.15) both;
+    /* «Скрывать сообщения после N с» из настроек Streamlabs */
+    animation:
+        popIn 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.15) both,
+        popOut 0.6s ease {message_hide_delay} forwards;
+    transform-origin: 0.6em 0.6em;   /* растёт от ✦ */
+}
+
+#log > div.deleted {
+    display: none;
+}
+
+/* Строка ника: ✦ [ник] значки */
+
+#log .meta {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.3em;
+    margin-bottom: 0.2em;
+
+    font-size: 0.95em;                        /* оригинал (без Streamlabs) */
+    font-size: calc({nickSize} * 0.01em);     /* поле «Размер ника» */
+    font-weight: 800;
+    line-height: 1.2;
+}
+
+/* ✦ — отсюда вылетают искорки */
+#log .star {
+    position: relative;
+    flex: none;
+    width: 1em;
+    text-align: center;
+
+    font-family: 'Segoe UI Symbol', 'M PLUS Rounded 1c', sans-serif;
+    font-weight: 400;
+    font-size: 0.95em;
+    color: var(--accent);
+
+    animation: starPop 0.7s cubic-bezier(0.3, 1.6, 0.5, 1) both;
+}
+
+#log .name {
+    flex: 0 1 auto;
+    min-width: 0;
+    padding: 0.18em 0.65em 0.2em;
+    border-radius: 999px;
+
+    /* color остаётся цветом ника (нужен для режима Twitch),
+       а буквы красятся белым отдельно */
+    color: inherit;
+    -webkit-text-fill-color: var(--pill-text);
+    background: linear-gradient(180deg, var(--pill-top), var(--pill-bottom));
+    box-shadow:
+        0 0.12em 0.4em rgba(93, 124, 188, 0.28),
+        inset 0 1px 0 rgba(255, 255, 255, 0.45);
+    letter-spacing: 0.02em;
+
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+/* Цвет из Twitch: плашка окрашивается цветом ника, притянутым к палитре,
+   чтобы белые буквы читались и на жёлтых/салатовых никах */
+#log.nick-twitch .name {
+    background: currentColor;
+    background: color-mix(in oklab, currentColor 60%, #34466b);
+}
+
+#log .colon {
+    display: none;
+}
+
+/* Значки */
+
+#log .badges {
+    display: inline-flex;
+    flex: none;
+    gap: 0.15em;
+}
+
+#log .badges:empty,
+#log.badges-hide .badges {
+    display: none;
+}
+
+#log .badge {
+    display: block;
+    height: 0.9em;
+    width: auto;
+    border-radius: 0.2em;
+    filter: grayscale(1) sepia(1) hue-rotate(185deg) saturate(1.6) brightness(0.95);
+    opacity: 0.85;
+}
+
+#log.badges-color .badge {
+    filter: none;
+    opacity: 1;
+}
+
+/* Пузырь с текстом */
+
+#log .message {
+    display: block;
+    width: 100%;
+    padding: 0.4em 0.7em 0.45em;
+
+    font-size: 1em;
+    font-weight: 500;
+    line-height: 1.4;
+    color: var(--ink);
+
+    background: linear-gradient(170deg, var(--bubble-top), var(--bubble-bottom));
+    border: 1px solid var(--bubble-border);
+    border-radius: 0.35em 1em 1em 1em;   /* острый угол смотрит на ник */
+    box-shadow: 0 0.2em 0.7em var(--bubble-shadow);
+
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+/* Эмоуты */
+
+#log .emote {
+    display: inline-block;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+    vertical-align: middle;
+    margin: -0.15em 0.05em;
+}
+
+#log .emote img {
+    display: inline-block;
+    height: 1.5em;
+    opacity: 0;
+}
+
+/* Цитата ответа (её добавляет chat.js) */
+
+#log .reply {
+    display: block;
+    margin: 0.1em 0 0.35em;
+    padding: 0.25em 0.55em 0.3em;
+
+    background: var(--quote-bg);
+    border-left: 0.18em solid var(--accent);
+    border-radius: 0.2em 0.5em 0.5em 0.2em;
+
+    font-size: 0.8em;
+    line-height: 1.3;
+}
+
+#log .reply-author {
+    display: block;
+    color: #5d7cbc;
+    font-weight: 700;
+
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+#log .reply-body {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+
+    color: var(--muted);
+    font-weight: 500;
+
+    overflow: hidden;
+    overflow-wrap: anywhere;
+}
+
+/* Искорки (их добавляет chat.js, живут ~1 с) */
+
+#log .sparks {
+    position: absolute;
+    left: 0.48em;              /* центр ✦ */
+    top: 50%;
+    width: 0;
+    height: 0;
+    z-index: 1;                /* поверх плашки ника */
+    pointer-events: none;
+}
+
+#log .sparks i {
+    position: absolute;
+    left: 0;
+    top: 0;
+    font-style: normal;
+    line-height: 1;
+    color: var(--c);
+    filter: drop-shadow(0 0 0.08em #ffffff);   /* блик, видно и на плашке */
+    opacity: 0;
+    animation: spark var(--t) cubic-bezier(0.15, 0.7, 0.3, 1) var(--w) forwards;
+}
+
+#log .sparks .twinkle {
+    font-size: calc(var(--s) * 1em);
+    margin: -0.5em 0 0 -0.35em;
+}
+
+#log .sparks .dot {
+    width: calc(var(--s) * 0.38em);
+    height: calc(var(--s) * 0.38em);
+    margin: calc(var(--s) * -0.19em) 0 0 calc(var(--s) * -0.19em);
+    border-radius: 50%;
+    background: var(--c);
+}
+
+#log.sparkle-off .sparks {
+    display: none;
+}
+
+#log.sparkle-off .star {
+    animation: none;
+}
+
+/* Анимации */
+
+@keyframes popIn {
+    from {
+        opacity: 0;
+        transform: translateY(0.4em) scale(0.96);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@keyframes popOut {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+        transform: scale(0.98);
+    }
+}
+
+/* ✦ вспыхивает: вырастает с поворотом и чуть пульсирует */
+@keyframes starPop {
+    0% {
+        transform: scale(0) rotate(-90deg);
+    }
+    60% {
+        transform: scale(1.35) rotate(10deg);
+        color: #5d7cbc;
+    }
+    100% {
+        transform: none;
+    }
+}
+
+/* искорка улетает от ✦ по своему углу и гаснет */
+@keyframes spark {
+    0% {
+        opacity: 0;
+        transform: rotate(var(--a)) translateX(0) scale(0.2);
+    }
+    15% {
+        opacity: 1;
+    }
+    60% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+        transform: rotate(var(--a)) translateX(var(--d)) rotate(90deg) scale(1);
+    }
+}
