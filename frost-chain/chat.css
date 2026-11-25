@@ -1,0 +1,365 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,600;1,700&family=Nunito:wght@500;600;700&family=Noto+Sans+JP:wght@500;600;700&family=Noto+Sans+KR:wght@500;600;700&family=Noto+Serif+JP:wght@600&family=Noto+Serif+KR:wght@600&display=swap');
+
+/*
+ * Frost Chain — ледяные карточки, подвешенные на тонкую цепь,
+ * как цепи на фоне. Streamlabs Chat Box → Custom HTML/CSS.
+ * Размер источника под bg.jpg 1280×720: 290×470, позиция x 944, y 126.
+ */
+
+:root {
+    --ink:          #34466b;   /* текст сообщения */
+    --nick:         #4f68a0;   /* ник */
+    --accent:       #89a0d8;   /* ✦, линии */
+    --muted:        #6f82ab;   /* текст цитаты */
+    --hair:         #b2c0ed;   /* волосок после ника */
+
+    /* Карточки непрозрачные: OBS/Streamlabs смешивает полупрозрачный
+       белый с фоном неверно, и он выходит серым. */
+    --card-top:     #f7f9ff;
+    --card-bottom:  #e6ecfc;
+    --card-ring:    #c9d5f5;   /* тонкая внешняя обводка «стекла» */
+    --card-shadow:  rgba(93, 124, 188, 0.2);
+    --quote-bg:     #e0e8f9;
+
+    --chain-x:      0.7em;     /* ось цепи от левого края */
+    --card-left:    1.4em;     /* отступ карточек от левого края */
+    --hook-top:     0.62em;    /* на какой высоте карточка висит на цепи */
+    --gap:          0.55em;
+    --fade:         3.2em;     /* высота растворения сверху */
+
+    /* цепь: звено «плашмя» + звено «ребром», повторяется по вертикали */
+    --chain-links: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 24'%3E%3Cg fill='%23f3f6ff' stroke='%237d95cf' stroke-width='1.2'%3E%3Crect x='3.7' y='-15' width='2.6' height='18' rx='1.3'/%3E%3Crect x='3.7' y='9' width='2.6' height='18' rx='1.3'/%3E%3C/g%3E%3Cg fill='none'%3E%3Cellipse cx='5' cy='6' rx='3.3' ry='5.2' stroke='%237d95cf' stroke-width='1.9'/%3E%3Cellipse cx='5' cy='6' rx='3.3' ry='5.2' stroke='%23ffffff' stroke-width='0.6'/%3E%3C/g%3E%3C/svg%3E");
+
+    /* застёжка: колечко на цепи и тонкая перемычка к карточке */
+    --chain-hook: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 19 10'%3E%3Cpath d='M8.3 5H19' stroke='%237d95cf' stroke-width='1.2'/%3E%3Ccircle cx='5' cy='5' r='3.1' fill='%23f3f6ff' stroke='%237d95cf' stroke-width='1.6'/%3E%3Ccircle cx='5' cy='5' r='3.1' fill='none' stroke='%23ffffff' stroke-width='0.5'/%3E%3C/svg%3E");
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html, body {
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+}
+
+body {
+    background: transparent;
+    font-family: 'Nunito', 'Noto Sans JP', 'Noto Sans KR', 'Segoe UI', sans-serif;
+    font-synthesis: none;      /* иероглифы не «заваливаются» фальшивым курсивом */
+    font-size: {font_size};
+    color: var(--ink);
+    text-shadow: none;
+
+    /* старые сообщения и цепь растворяются под заголовком */
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 var(--fade));
+            mask-image: linear-gradient(to bottom, transparent 0, #000 var(--fade));
+}
+
+/* Контейнер чата */
+
+#log {
+    --chain-end: 1em;          /* без JS цепь доходит почти до низа */
+
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    padding: 0 0.35em 0.8em var(--card-left);   /* снизу — отступ от звёздочек */
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap);
+}
+
+/* Цепь: висит с самого верха. Звенья привязаны к низу #log и не двигаются,
+   chat.js только обрезает её на застёжке последнего сообщения. */
+#log::before {
+    content: "";
+    position: absolute;
+    left: calc(var(--chain-x) - 0.3em);
+    width: 0.6em;
+    top: -300vh;
+    bottom: 0;
+    background: var(--chain-links) center bottom / 0.6em 1.44em repeat-y;
+    opacity: 0.95;
+    clip-path: inset(0 0 var(--chain-end) 0);
+    transition: clip-path 0.45s cubic-bezier(0.2, 0.8, 0.2, 1);
+    pointer-events: none;
+}
+
+#log.chain-thread::before {
+    background:
+        linear-gradient(90deg,
+            transparent calc(50% - 1px),
+            #9eb5eb calc(50% - 1px), #9eb5eb 50%,
+            #ffffff 50%, #ffffff calc(50% + 1px),
+            transparent calc(50% + 1px));
+}
+
+#log.chain-none {
+    padding-left: 0.35em;
+}
+
+#log.chain-none::before,
+#log.chain-none > div::before {
+    display: none;
+}
+
+/* Сообщение = карточка */
+
+#log > div {
+    position: relative;
+    display: block;
+    width: 100%;
+    padding: 0.4em 0.75em 0.5em;
+
+    background: linear-gradient(165deg, var(--card-top), var(--card-bottom));
+    border: 1px solid #ffffff;
+    border-radius: 0.75em;
+    box-shadow:
+        0 0 0 1px var(--card-ring),
+        0 0.25em 0.9em var(--card-shadow),
+        inset 0 1px 0 #ffffff;
+
+    transform-origin: calc(var(--chain-x) - var(--card-left)) var(--hook-top);
+    animation: chainIn 0.6s cubic-bezier(0.2, 0.8, 0.25, 1) both;
+    /* «Скрывать сообщения после N с» из настроек Streamlabs */
+    animation:
+        chainIn 0.6s cubic-bezier(0.2, 0.8, 0.25, 1) both,
+        chainOut 0.6s ease {message_hide_delay} forwards;
+}
+
+#log > div.deleted {
+    display: none;
+}
+
+/* застёжка на цепи */
+#log > div::before {
+    content: "";
+    position: absolute;
+    left: calc(var(--chain-x) - var(--card-left) - 0.3em - 1px);
+    top: var(--hook-top);
+    width: 1.14em;
+    height: 0.6em;
+    background: var(--chain-hook) left center / contain no-repeat;
+}
+
+#log.chain-thread > div::before {
+    left: calc(var(--chain-x) - var(--card-left) - 0.15em - 1px);
+    width: calc(var(--card-left) - var(--chain-x) + 0.15em);
+    height: 0.3em;
+    top: calc(var(--hook-top) + 0.1em);
+    background:
+        radial-gradient(circle at 0.15em 50%, #ffffff 0.07em, var(--accent) 0.08em, var(--accent) 0.14em, transparent 0.15em),
+        linear-gradient(var(--accent), var(--accent)) right center / calc(100% - 0.3em) 1px no-repeat;
+}
+
+/* маленькая ✦ в углу карточки, как на рамке панели */
+#log > div::after {
+    content: "✦";
+    position: absolute;
+    top: 0.45em;
+    right: 0.55em;
+    font-family: 'Segoe UI Symbol', 'Nunito', sans-serif;
+    font-size: 0.55em;
+    line-height: 1;
+    color: var(--hair);
+}
+
+/* Ник: ✦ ник ———— */
+
+#log .meta {
+    display: flex;
+    align-items: center;
+    gap: 0.3em;
+    padding-right: 1em;        /* место под ✦ в углу */
+    margin-bottom: 0.1em;
+
+    font-family: 'Cormorant Garamond', 'Noto Serif JP', 'Noto Serif KR', Georgia, serif;
+    font-style: italic;
+    font-size: 1.15em;                        /* оригинал (без Streamlabs) */
+    font-size: calc({nickSize} * 0.01em);     /* поле «Размер ника» */
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: 0.01em;
+    font-size-adjust: from-font;   /* иероглифы по высоте как латиница */
+    font-variant-numeric: lining-nums;
+    font-feature-settings: "lnum" 1;
+}
+
+#log:not(.nick-twitch) .meta,
+#log:not(.nick-twitch) .name {
+    color: var(--nick) !important;
+}
+
+/* цвет из Twitch, притянутый к палитре: жёлтые и салатовые иначе не читаются */
+#log.nick-twitch .name {
+    color: inherit;
+    color: color-mix(in oklab, currentColor 68%, #2b3a6b);
+}
+
+/* волосок после ника, гаснет к концу */
+#log .meta::after {
+    content: "";
+    flex: 1 1 0;
+    min-width: 0.8em;
+    height: 1px;
+    margin: 0.15em 0 0 0.2em;
+    background: linear-gradient(90deg, var(--hair), transparent);
+}
+
+#log .name {
+    flex: 0 1 auto;
+    min-width: 0;
+    padding-right: 0.15em;     /* курсив не обрезается справа */
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+#log .colon {
+    display: none;
+}
+
+/* Значки */
+
+#log .badges {
+    display: inline-flex;
+    flex: none;
+    gap: 0.15em;
+}
+
+#log .badges:empty,
+#log.badges-hide .badges {
+    display: none;
+}
+
+#log .badge {
+    display: block;
+    height: 0.8em;
+    width: auto;
+    border-radius: 0.15em;
+    filter: grayscale(1) sepia(1) hue-rotate(185deg) saturate(1.6) brightness(0.95);
+    opacity: 0.85;
+}
+
+#log.badges-color .badge {
+    filter: none;
+    opacity: 1;
+}
+
+/* Текст */
+
+#log .message {
+    display: block;
+    width: 100%;
+
+    font-size: 1em;
+    font-weight: 600;
+    line-height: 1.35;
+    color: var(--ink);
+
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+/* Эмоуты */
+
+#log .emote {
+    display: inline-block;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+    vertical-align: middle;
+    margin: -0.15em 0.05em;
+}
+
+#log .emote img {
+    display: inline-block;
+    height: 1.5em;
+    opacity: 0;
+}
+
+/* Цитата ответа (её добавляет chat.js) */
+
+#log .reply {
+    position: relative;
+    display: block;
+    margin: 0.1em 0 0.35em;
+    padding: 0.25em 0.55em 0.3em 1.25em;
+
+    background: var(--quote-bg);
+    border-radius: 0.45em;
+
+    font-size: 0.8em;
+    line-height: 1.3;
+}
+
+/* крючок ↳, нарисованный рамкой: не зависит от шрифта */
+#log .reply::before {
+    content: "";
+    position: absolute;
+    left: 0.5em;
+    top: 0.35em;
+    width: 0.45em;
+    height: 0.55em;
+    border-left: 0.12em solid var(--accent);
+    border-bottom: 0.12em solid var(--accent);
+    border-bottom-left-radius: 0.3em;
+}
+
+#log .reply-author {
+    display: block;
+    color: var(--nick);
+    font-weight: 700;
+
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+#log .reply-body {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+
+    color: var(--muted);
+    font-weight: 500;
+
+    overflow: hidden;
+    overflow-wrap: anywhere;
+}
+
+/* Появление: карточку «вешают» на цепь — лёгкий качок вокруг застёжки */
+
+@keyframes chainIn {
+    0% {
+        opacity: 0;
+        transform: translateY(-0.4em) rotate(-4deg);
+        filter: blur(3px);
+    }
+    55% {
+        opacity: 1;
+        transform: rotate(1.2deg);
+        filter: none;
+    }
+    80% {
+        transform: rotate(-0.4deg);
+    }
+    100% {
+        opacity: 1;
+        transform: none;
+        filter: none;
+    }
+}
+
+@keyframes chainOut {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+        filter: blur(2px);
+    }
+}

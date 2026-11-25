@@ -1,0 +1,39 @@
+{
+    "nickSize": {
+        "label": "Размер ника, % от текста (оригинал: 115)",
+        "type": "slider",
+        "value": 115,
+        "min": 100,
+        "max": 150,
+        "steps": 5
+    },
+    "nickColor": {
+        "label": "Цвет ника",
+        "type": "dropdown",
+        "value": "palette",
+        "options": {
+            "palette": "Оригинал: единый голубой",
+            "twitch": "Цвет из Twitch"
+        }
+    },
+    "badgeStyle": {
+        "label": "Значки",
+        "type": "dropdown",
+        "value": "muted",
+        "options": {
+            "muted": "Оригинал: в тон палитры",
+            "color": "Цветные",
+            "hide": "Скрыть"
+        }
+    },
+    "chainStyle": {
+        "label": "Цепочка слева",
+        "type": "dropdown",
+        "value": "chain",
+        "options": {
+            "chain": "Оригинал: цепь из звеньев",
+            "thread": "Тонкая нить",
+            "none": "Без цепочки"
+        }
+    }
+}
