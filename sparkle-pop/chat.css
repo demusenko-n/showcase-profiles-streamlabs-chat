@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;700;800&family=Noto+Sans+KR:wght@500;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@500;700;800&family=M+PLUS+Rounded+1c:wght@500;700;800&family=Noto+Sans+KR:wght@500;700;800&display=swap');
 
 /*
  * Sparkle Pop — спокойный чат: ник в голубой плашке, текст в белом
@@ -40,7 +40,7 @@ html, body {
 
 body {
     background: transparent;
-    font-family: 'M PLUS Rounded 1c', 'Noto Sans KR', 'Segoe UI', sans-serif;
+    font-family: 'Nunito', 'M PLUS Rounded 1c', 'Noto Sans KR', 'Segoe UI', sans-serif;   /* Nunito: латиница и кириллица, M PLUS: японский */
     font-synthesis: none;
     font-size: {font_size};
     color: var(--ink);
@@ -103,7 +103,7 @@ body {
     width: 1em;
     text-align: center;
 
-    font-family: 'Segoe UI Symbol', 'M PLUS Rounded 1c', sans-serif;
+    font-family: 'Segoe UI Symbol', 'Nunito', sans-serif;
     font-weight: 400;
     font-size: 0.95em;
     color: var(--accent);
