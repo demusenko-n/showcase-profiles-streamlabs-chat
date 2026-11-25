@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,600;1,700&family=Nunito:wght@500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,600;1,700&family=Nunito:wght@500;600;700&family=Noto+Sans+JP:wght@500;600;700&family=Noto+Sans+KR:wght@500;600;700&family=Noto+Serif+JP:wght@600&family=Noto+Serif+KR:wght@600&display=swap');
 
 /*
  * Frost — чат для панели «chat» (Streamlabs Chat Box → Custom HTML/CSS).
@@ -11,10 +11,13 @@
     --accent:       #8299c8;   /* ✦ и линия цитаты */
     --muted:        #6f82ab;   /* текст цитаты */
 
-    --card-top:     rgba(255, 255, 255, 0.66);
-    --card-bottom:  rgba(244, 247, 255, 0.46);
-    --card-border:  rgba(255, 255, 255, 0.90);
-    --card-shadow:  rgba(93, 124, 188, 0.16);
+    /* Карточки непрозрачные: OBS/Streamlabs смешивает полупрозрачный
+       белый с фоном неверно, и он выходит серым. Цвета подобраны под панель. */
+    --card-top:     #f6f8ff;
+    --card-bottom:  #e9effd;
+    --card-border:  #ffffff;
+    --card-shadow:  rgba(93, 124, 188, 0.18);
+    --quote-bg:     #e2e9f8;
 
     --fade:         3.2em;     /* высота растворения сверху */
 }
@@ -31,7 +34,8 @@ html, body {
 
 body {
     background: transparent;
-    font-family: 'Nunito', 'Segoe UI', sans-serif;
+    font-family: 'Nunito', 'Noto Sans JP', 'Noto Sans KR', 'Segoe UI', sans-serif;
+    font-synthesis: none;      /* иероглифы не «заваливаются» фальшивым курсивом */
     font-size: {font_size};
     color: var(--ink);
     text-shadow: none;
@@ -75,12 +79,13 @@ body {
     padding: 0 0.45em;
     margin-bottom: 0.1em;
 
-    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-family: 'Cormorant Garamond', 'Noto Serif JP', 'Noto Serif KR', Georgia, serif;
     font-style: italic;
     font-size: 1.08em;
     font-weight: 700;
     line-height: 1.25;
     letter-spacing: 0.01em;
+    font-size-adjust: from-font;   /* иероглифы по высоте как латиница */
     font-variant-numeric: lining-nums;
     font-feature-settings: "lnum" 1;
     color: var(--nick) !important;
@@ -145,7 +150,7 @@ body {
     border-radius: 0.7em;
     box-shadow:
         0 0.2em 0.8em var(--card-shadow),
-        inset 0 1px 0 rgba(255, 255, 255, 0.9);
+        inset 0 1px 0 #ffffff;
 
     white-space: normal;
     overflow-wrap: anywhere;
@@ -176,7 +181,7 @@ body {
     margin: 0.05em 0 0.35em;
     padding: 0.25em 0.55em 0.3em 1.25em;
 
-    background: rgba(130, 153, 200, 0.12);
+    background: var(--quote-bg);
     border-radius: 0.45em;
 
     font-size: 0.8em;

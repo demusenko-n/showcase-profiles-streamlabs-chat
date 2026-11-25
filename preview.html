@@ -129,6 +129,9 @@ const USERS = [
     { from: 'chynaO_o', color: '#8A2BE2', badges: [BADGE.broadcaster] },
     { from: 'sleepy_mita', color: '#DAA520', badges: [] },
     { from: 'очень_длинный_ник_зрителя_2009', color: '#FF69B4', badges: [BADGE.sub] },
+    { from: '雪の妖精', color: '#5F9EA0', badges: [BADGE.sub] },
+    { from: '하늘별_ㅋㅋ', color: '#9ACD32', badges: [] },
+    { from: '白雪ちゃん_desu', color: '#B22222', badges: [BADGE.vip] },
 ];
 const TEXTS = [
     'дароу', 'пливет', 'кактус', '!testelo sleepy-mita:720',
@@ -180,6 +183,9 @@ function seed() {
         () => { lastMsg = { from: 'JI_IO_6_O_B_b', text: '!testelo sleepy-mita:720' }; sendReply(); },
         () => send(USERS[5], 'а можно вопрос: как называется этот трек? очень атмосферно'),
         () => send(USERS[4], `ахах ${emote(425618)}`),
+        () => send(USERS[6], 'こんばんは〜 今日も可愛い'),
+        () => send(USERS[7], '안녕하세요!'),
+        () => send(USERS[8], 'mixed ник test'),
         () => send(USERS[1], 'кактус'),
     ];
     s.forEach((f, i) => setTimeout(f, 60 * i));
