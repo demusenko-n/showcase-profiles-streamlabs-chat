@@ -1,36 +1,36 @@
 /*
- * Frost — раскладка, группы и ответы.
+ * Frost — layout, groups and replies.
  *
- * Новое сообщение обрабатывается в MutationObserver: он срабатывает
- * сразу после вставки строки в #log, до отрисовки кадра. Поэтому замер
- * «влезает ли в строку» и выбор раскладки зритель не видит — сообщение
- * сразу появляется в нужном виде, без прыжков.
+ * A new message is handled in a MutationObserver: it fires
+ * right after the row is inserted into #log, before the frame is painted. So the
+ * "does it fit on one line" measurement and layout choice are invisible to the viewer —
+ * the message appears in its final form right away, without jumps.
  */
 
-/* всё внутри функции: имена вроде log не должны пересекаться
-   со скриптами Streamlabs и страницы превью */
+/* everything inside a function: names like log must not clash
+   with Streamlabs scripts or the preview page */
 (function init() {
 
     const log = document.getElementById('log');
     if (!log) {
-        /* #log ещё не в документе — подождём загрузки */
+        /* #log isn't in the document yet — wait for load */
         document.addEventListener('DOMContentLoaded', init, { once: true });
         return;
     }
 
-    /* Поля Streamlabs приходят классами на #log (вне Streamlabs — оригинал: ник сверху) */
+    /* Streamlabs fields arrive as classes on #log (outside Streamlabs — original: nick on top) */
     const layoutMode = () =>
         log.classList.contains('layout-adaptive') ? 'adaptive' :
         log.classList.contains('layout-inline') ? 'inline' : 'stack';
-    /* в оригинале (ник сверху) сообщения не объединяются */
+    /* in the original layout (nick on top) messages aren't grouped */
     const groupingOn = () => layoutMode() !== 'stack';
 
-    /* Ник длиннее этой доли ширины всегда уходит наверх (догадка, можно подвинуть) */
+    /* A nick longer than this fraction of the width always goes on top (a guess, can be tuned) */
     const MAX_INLINE_NICK = 0.5;
 
-    /* ---------- ответы ---------- */
+    /* ---------- replies ---------- */
 
-    const replyTags = new Map();   // id сообщения → теги ответа
+    const replyTags = new Map();   // message id → reply tags
 
     function decodeIrcTag(value = '') {
         const escapes = { s: ' ', ':': ';', '\\': '\\', r: '\r', n: '\n' };
@@ -58,7 +58,7 @@
         }
     }
 
-    /* Вставляет цитату, если для строки уже пришли теги. true — если вставил. */
+    /* Inserts the quote if tags for the row have already arrived. Returns true if inserted. */
     function applyReply(row) {
         const tags = replyTags.get(row.dataset.id);
         const message = row.querySelector('.message');
@@ -85,12 +85,12 @@
         message.prepend(reply);
 
         row.classList.add('is-reply');
-        /* ответ с ником сверху; в раскладке «в строку» — цитата, под ней «ник: текст» */
+        /* reply with the nick on top; in the inline layout — the quote, with "nick: text" below it */
         row.dataset.lay = layoutMode() === 'inline' ? 'inline' : 'stack';
         return true;
     }
 
-    /* ---------- раскладка ---------- */
+    /* ---------- layout ---------- */
 
     function measureLayout(row) {
         if (row.classList.contains('is-reply')) {
@@ -113,8 +113,8 @@
         return fits ? 'inline' : 'stack';
     }
 
-        /* В строку цитата стоит первой в карточке, над «ник: текст»;
-       иначе — внутри .message, как обычно */
+        /* Inline, the quote comes first in the card, above "nick: text";
+       otherwise it goes inside .message as usual */
     function placeReply(row) {
         const reply = row.querySelector('.reply');
         const message = row.querySelector('.message');
@@ -130,7 +130,7 @@
         }
     }
 
-    /* ---------- группы ---------- */
+    /* ---------- groups ---------- */
 
     const rows = () => [...log.children].filter(el =>
         el.tagName === 'DIV' &&
@@ -158,21 +158,21 @@
             row.classList.toggle('g-cont', cont);
             row.classList.toggle('g-next', hasNext);
 
-            /* первое сообщение группы (или одиночное) получает раскладку один раз */
+            /* the first message of a group (or a single one) gets its layout once */
             if (!cont && !row.dataset.lay) {
                 row.dataset.lay = measureLayout(row);
             }
-            /* в строку только одиночное сообщение: как только у зрителя
-           появляется второе подряд, ник уходит наверх, а сообщения
-           идут в одной карточке с новой строки */
+            /* only a single message goes inline: as soon as the viewer
+           sends a second one in a row, the nick moves to the top and the messages
+           go into one card, each on a new line */
         row.classList.toggle('is-inline', !cont && !hasNext && row.dataset.lay === 'inline');
         placeReply(row);
         });
     }
 
-    /* ---------- события ---------- */
+    /* ---------- events ---------- */
 
-    /* служебные классы, которые меняет сам скрипт: на них не реагируем */
+    /* internal classes the script changes itself: ignore them */
     const OWN = /\b(g-cont|g-next|is-inline|a-measure|is-reply|gone)\b/g;
     const strip = s => (s || '').replace(OWN, '').trim().replace(/\s+/g, ' ');
 
@@ -189,7 +189,7 @@
                 changed = true;
             } else if (r.target.parentNode === log &&
                        strip(r.oldValue) !== strip(r.target.className)) {
-                changed = true;   // например, Streamlabs пометил сообщение удалённым
+                changed = true;   // e.g. Streamlabs marked the message as deleted
             }
         }
 
@@ -204,8 +204,8 @@
         attributeOldValue: true
     });
 
-    /* исчезнувшее по таймеру сообщение больше не держит группу:
-       следующее за ним становится первым и показывает ник */
+    /* a message hidden by the timer no longer holds the group:
+       the next one becomes first and shows the nick */
     log.addEventListener('animationend', (e) => {
         if (e.animationName === 'frostOut' && e.target.parentNode === log) {
             e.target.classList.add('gone');
@@ -229,8 +229,8 @@
             replyTags.delete(replyTags.keys().next().value);
         }
 
-        /* строка уже в чате (событие пришло позже вставки) — доделываем сразу;
-           иначе цитату вставит MutationObserver */
+        /* the row is already in the chat (event arrived after insertion) — finish now;
+           otherwise the MutationObserver inserts the quote */
         const row = log.querySelector(`:scope > div[data-id="${CSS.escape(tags.id)}"]`);
         if (row && applyReply(row)) {
             regroup();

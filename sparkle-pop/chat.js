@@ -97,9 +97,9 @@ document.addEventListener('onEventReceived', (event) => {
     insertReply();
 });
 
-/* Искорки: при появлении сообщения из ✦ у ника разлетаются
-   несколько маленьких звёздочек и точек, потом всё затихает.
-   Работает через MutationObserver, поэтому не зависит от формата событий. */
+/* Sparkles: when a message appears, a few small stars and dots burst
+   out of the ✦ next to the nick, then everything settles.
+   Works via MutationObserver, so it doesn't depend on the event format. */
 
 const SPARK_COLORS = ['#9eb5eb', '#89a0d8', '#b2c0ed', '#5d7cbc'];
 
@@ -118,8 +118,8 @@ function burst(row) {
     const sparks = document.createElement('span');
     sparks.className = 'sparks';
 
-    /* веер вверх-вправо: влево ✦ упирается в край источника,
-       вниз — в пузырь с текстом */
+    /* fan up and to the right: to the left the ✦ hits the source edge,
+       downward it hits the text bubble */
     const count = 7;
     const from = -150;
     const to = 10;
@@ -140,9 +140,9 @@ function burst(row) {
         sparks.append(spark);
     }
 
-    star.after(sparks);   /* рядом со ✦, а не внутри: её собственная анимация не крутит искорки */
+    star.after(sparks);   /* next to the ✦, not inside: its own animation doesn't spin the sparkles */
 
-    /* убираем частицы, когда отыграли, чтобы не копились */
+    /* remove particles once they finish so they don't pile up */
     setTimeout(() => sparks.remove(), 1400);
 }
 

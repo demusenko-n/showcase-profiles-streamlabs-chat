@@ -1,33 +1,33 @@
 @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,600;1,700&family=Nunito:wght@500;600;700&family=Noto+Sans+JP:wght@500;600;700&family=Noto+Sans+KR:wght@500;600;700&family=Noto+Serif+JP:wght@600;700&family=Noto+Serif+KR:wght@600;700&display=swap');
 
 /*
- * Floating Label — ник сидит на верхней рамке карточки, как именная табличка.
+ * Floating Label — the nick sits on the card's top border like a name tag.
  * Streamlabs Chat Box → Custom HTML/CSS.
- * Размер источника под bg.jpg 1280×720: 290×470, позиция x 944, y 126.
+ * Source size for bg.jpg 1280×720: 290×470, position x 944, y 126.
  */
 
 :root {
-    --ink:          #3a4d7a;   /* текст сообщения */
-    --nick:         #4a6399;   /* ник */
-    --accent:       #89a0d8;   /* ✦ и линия цитаты */
-    --muted:        #6f86bd;   /* текст цитаты */
+    --ink:          #3a4d7a;   /* message text */
+    --nick:         #4a6399;   /* nickname */
+    --accent:       #89a0d8;   /* ✦ and quote line */
+    --muted:        #6f86bd;   /* quote text */
 
-    /* Всё непрозрачное: OBS смешивает полупрозрачный белый с фоном
-       неверно, и он выходит серым */
+    /* Everything is opaque: OBS blends semi-transparent white with the background
+       incorrectly, and it turns grey */
     --card-top:     #f5f7ff;
     --card-bottom:  #e8eefd;
     --card-border:  #ffffff;
     --card-shadow:  rgba(93, 124, 188, 0.2);
     --quote-bg:     #e0e8fb;
 
-    /* табличка */
+    /* name tag */
     --label-top:    #e6ebfd;
     --label-bottom: #c9d5f6;
     --label-border: #ffffff;
     --label-ink:    var(--nick);
     --label-star:   #5d7cbc;
 
-    --fade:         3.4em;     /* высота растворения сверху */
+    --fade:         3.4em;     /* height of the top fade-out */
 }
 
 * {
@@ -43,19 +43,19 @@ html, body {
 body {
     background: transparent;
     font-family: 'Nunito', 'Noto Sans JP', 'Noto Sans KR', 'Segoe UI', sans-serif;
-    font-synthesis: none;      /* иероглифы не «заваливаются» фальшивым курсивом */
+    font-synthesis: none;      /* CJK glyphs don't get a fake slanted italic */
     font-size: {font_size};
     color: var(--ink);
     text-shadow: none;
 
-    /* старые сообщения плавно растворяются под заголовком панели */
+    /* old messages fade out smoothly under the panel header */
     -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 var(--fade));
             mask-image: linear-gradient(to bottom, transparent 0, #000 var(--fade));
 }
 
-/* Варианты таблички */
+/* Name tag variants */
 
-/* тёмная: заливка глубоким голубым, ник белый */
+/* dark: deep blue fill, white nick */
 #log.label-deep {
     --label-top:    #6f8cc9;
     --label-bottom: #5470ad;
@@ -64,27 +64,27 @@ body {
     --label-star:   #d7e1fc;
 }
 
-/* вырез: табличка цвета карточки, рамка как будто разомкнута под ником */
+/* cutout: tag in card color, the border looks broken under the nick */
 #log.label-tab {
     --label-top:    var(--card-top);
     --label-bottom: var(--card-top);
     --label-border: var(--accent);
 }
 
-/* Контейнер чата */
+/* Chat container */
 
 #log {
     position: absolute;
     bottom: 0;
     left: 0;
     width: 100%;
-    padding: 0 0.35em 0.75em;  /* отступ от звёздочек в нижних углах */
+    padding: 0 0.35em 0.75em;  /* clearance from the stars in the bottom corners */
     display: flex;
     flex-direction: column;
     gap: 0.55em;
 }
 
-/* Сообщение: табличка + карточка */
+/* Message: name tag + card */
 
 #log > div {
     position: relative;
@@ -92,10 +92,10 @@ body {
     flex-direction: column;
     align-items: flex-start;
     width: 100%;
-    /* табличка в потоке, а не absolute: при появлении
-       она не может наехать на соседнюю карточку */
+    /* the tag is in normal flow, not absolute: on entrance
+       it can't overlap the neighboring card */
     animation: labelIn 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
-    /* «Скрывать сообщения после N с» из настроек Streamlabs */
+    /* "Hide messages after N s" from Streamlabs settings */
     animation:
         labelIn 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both,
         labelOut 0.6s ease {message_hide_delay} forwards;
@@ -105,7 +105,7 @@ body {
     display: none;
 }
 
-/* Табличка с ником */
+/* Nick name tag */
 
 #log .meta {
     position: relative;
@@ -114,17 +114,17 @@ body {
     align-items: center;
     gap: 0.28em;
     max-width: calc(100% - 1.6em);
-    margin: 0 0 -0.72em 0.7em;   /* нижняя половина ложится на рамку карточки */
+    margin: 0 0 -0.72em 0.7em;   /* bottom half rests on the card border */
     padding: 0.08em 0.6em 0.12em 0.45em;
 
     font-family: 'Cormorant Garamond', 'Noto Serif JP', 'Noto Serif KR', Georgia, serif;
     font-style: italic;
-    font-size: 1.1em;                         /* оригинал (без Streamlabs) */
-    font-size: calc({nickSize} * 0.01em);     /* поле «Размер ника» */
+    font-size: 1.1em;                         /* original (without Streamlabs) */
+    font-size: calc({nickSize} * 0.01em);     /* "Nick size" field */
     font-weight: 700;
     line-height: 1.2;
     letter-spacing: 0.01em;
-    font-size-adjust: from-font;   /* иероглифы по высоте как латиница */
+    font-size-adjust: from-font;   /* CJK glyphs match Latin height */
     font-variant-numeric: lining-nums;
     font-feature-settings: "lnum" 1;
 
@@ -148,8 +148,8 @@ body {
     color: var(--label-star);
 }
 
-/* Цвет ника: оригинал — из палитры таблички; nick-twitch — цвет из Twitch,
-   притянутый к палитре, чтобы жёлтые и салатовые ники читались */
+/* Nick color: original uses the tag palette; nick-twitch uses the Twitch color
+   pulled toward the palette so yellow and lime nicks stay readable */
 
 #log:not(.nick-twitch) .meta,
 #log:not(.nick-twitch) .name {
@@ -168,7 +168,7 @@ body {
 
 #log .name {
     min-width: 0;
-    padding-right: 0.12em;     /* курсив не обрезается справа */
+    padding-right: 0.12em;     /* italic isn't clipped on the right */
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
@@ -178,7 +178,7 @@ body {
     display: none;
 }
 
-/* Значки */
+/* Badges */
 
 #log .badges {
     display: inline-flex;
@@ -210,13 +210,13 @@ body {
     opacity: 1;
 }
 
-/* Карточка */
+/* Card */
 
 #log .message {
     position: relative;
     display: block;
     width: 100%;
-    padding: 0.95em 0.75em 0.5em;   /* сверху — место под табличку */
+    padding: 0.95em 0.75em 0.5em;   /* top: room for the name tag */
 
     font-size: 1em;
     font-weight: 600;
@@ -226,7 +226,7 @@ body {
     background: linear-gradient(165deg, var(--card-top), var(--card-bottom));
     border: 1px solid var(--card-border);
     border-radius: 0.75em;
-    /* тонкая вторая линия внутри рамки */
+    /* thin second line inside the border */
     box-shadow:
         inset 0 0 0 0.2em var(--card-top),
         inset 0 0 0 calc(0.2em + 1px) #ffffff,
@@ -236,7 +236,7 @@ body {
     overflow-wrap: anywhere;
 }
 
-/* маленькая ✦ на верхней рамке справа */
+/* small ✦ on the top border, right side */
 #log .message::after {
     content: "✦";
     position: absolute;
@@ -251,7 +251,7 @@ body {
     text-shadow: 0 0 0.2em #ffffff, 0 0 0.4em #ffffff;
 }
 
-/* Эмоуты */
+/* Emotes */
 
 #log .emote {
     display: inline-block;
@@ -268,7 +268,7 @@ body {
     opacity: 0;
 }
 
-/* Цитата ответа (её добавляет chat.js) */
+/* Reply quote (added by chat.js) */
 
 #log .reply {
     position: relative;
@@ -283,7 +283,7 @@ body {
     line-height: 1.3;
 }
 
-/* крючок ↳, нарисованный рамкой: не зависит от шрифта */
+/* ↳ hook drawn with borders: doesn't depend on the font */
 #log .reply::before {
     content: "";
     position: absolute;
@@ -318,7 +318,7 @@ body {
     overflow-wrap: anywhere;
 }
 
-/* Появление: карточка поднимается, табличка «прикрепляется» чуть позже */
+/* Entrance: the card rises, the name tag "attaches" a moment later */
 
 @keyframes labelIn {
     from {

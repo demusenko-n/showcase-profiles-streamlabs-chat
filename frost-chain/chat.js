@@ -97,10 +97,10 @@ document.addEventListener('onEventReceived', (event) => {
     insertReply();
 });
 
-/* Цепь: у каждой карточки свой отрезок от её колечка вверх до колечка
-   предыдущей (сам отрезок рисует CSS, .chain). Здесь только считаем длину
-   отрезка и подгоняем высоту звена так, чтобы звеньев было целое число:
-   тогда все колечки сидят на цепи одинаково. */
+/* Chain: each card has its own segment from its ring up to the previous
+   card's ring (CSS draws the segment itself, .chain). Here we only measure
+   the segment length and adjust the link height so the number of links is whole:
+   then every ring sits on the chain the same way. */
 
 (function fitChain() {
     const log = document.getElementById('log');
@@ -127,7 +127,7 @@ document.addEventListener('onEventReceived', (event) => {
             let link = period;
 
             if (i === 0) {
-                /* верхняя карточка: цепь уходит под заголовок */
+                /* top card: the chain goes up under the header */
                 seg = Math.ceil((row.offsetTop + 4 * em) / period) * period;
             } else {
                 seg = row.offsetTop - rows[i - 1].offsetTop;

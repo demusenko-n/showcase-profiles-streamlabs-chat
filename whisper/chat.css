@@ -1,20 +1,20 @@
 @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,500;1,600;1,700&family=Noto+Serif+JP:wght@500;600;700&family=Noto+Serif+KR:wght@500;600;700&display=swap');
 
 /*
- * Whisper — чат без карточек: курсивная антиква с мягким ореолом,
- * тонкие светлые линии и ✦. Streamlabs Chat Box → Custom HTML/CSS.
- * Размер источника под bg.jpg 1280×720: 290×470, позиция x 944, y 126.
+ * Whisper — a chat without cards: italic serif with a soft halo,
+ * thin light lines and ✦. Streamlabs Chat Box → Custom HTML/CSS.
+ * Source size for bg.jpg 1280×720: 290×470, position x 944, y 126.
  */
 
 :root {
-    --ink:      #4a6399;   /* текст сообщения (чуть глубже #5d7cbc, чтобы читался) */
-    --nick:     #5d7cbc;   /* ник */
+    --ink:      #4a6399;   /* message text (slightly deeper than #5d7cbc so it stays readable) */
+    --nick:     #5d7cbc;   /* nickname */
     --accent:   #89a0d8;   /* ✦ */
-    --muted:    #6f86bd;   /* текст цитаты */
-    --line:     #ffffff;   /* тонкая линия после ника */
-    --line-sub: #9eb5eb;   /* её подложка, чтобы линия была видна на светлом */
+    --muted:    #6f86bd;   /* quote text */
+    --line:     #ffffff;   /* thin line after the nick */
+    --line-sub: #9eb5eb;   /* its underlay, so the line is visible on light backgrounds */
 
-    /* ореол: три слоя, от плотного к рассеянному */
+    /* halo: three layers, from dense to diffuse */
     --halo-1: #ffffff;
     --halo-2: rgba(255, 255, 255, 0.9);
     --halo-3: rgba(230, 235, 253, 0.75);
@@ -22,7 +22,7 @@
     --halo-r2: 0.3em;
     --halo-r3: 0.8em;
 
-    --fade: 3.4em;         /* высота растворения сверху */
+    --fade: 3.4em;         /* height of the top fade-out */
 }
 
 * {
@@ -39,20 +39,20 @@ body {
     background: transparent;
     font-family: 'Cormorant Garamond', 'Noto Serif JP', 'Noto Serif KR', Georgia, serif;
     font-style: italic;
-    font-synthesis: none;      /* иероглифы не «заваливаются» фальшивым курсивом */
+    font-synthesis: none;      /* CJK glyphs don't get a fake slanted italic */
     font-size: {font_size};
     font-variant-numeric: lining-nums;
     font-feature-settings: "lnum" 1;
     color: var(--ink);
 
-    /* старые сообщения плавно растворяются под заголовком */
+    /* old messages fade out smoothly under the header */
     -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 var(--fade));
             mask-image: linear-gradient(to bottom, transparent 0, #000 var(--fade));
 }
 
-/* Режимы ореола */
+/* Halo modes */
 
-/* плотный: несколько слоёв белого, текст лежит на «облачке» */
+/* strong: several layers of white, text rests on a "cloud" */
 #log.glow-strong {
     text-shadow:
         0 0 0.08em #ffffff,
@@ -75,14 +75,14 @@ body {
     --halo-3: rgba(45, 62, 120, 0.5);
 }
 
-/* Контейнер чата */
+/* Chat container */
 
 #log {
     position: absolute;
     bottom: 0;
     left: 0;
     width: 100%;
-    padding: 0 0.6em 0.8em;    /* отступ от звёздочек в нижних углах */
+    padding: 0 0.6em 0.8em;    /* clearance from the stars in the bottom corners */
     display: flex;
     flex-direction: column;
     gap: 0.55em;
@@ -93,13 +93,13 @@ body {
         0 0 var(--halo-r3) var(--halo-3);
 }
 
-/* Сообщение */
+/* Message */
 
 #log > div {
     display: block;
     width: 100%;
     animation: whisperIn 0.9s cubic-bezier(0.25, 0.7, 0.3, 1) both;
-    /* «Скрывать сообщения после N с» из настроек Streamlabs */
+    /* "Hide messages after N s" from Streamlabs settings */
     animation:
         whisperIn 0.9s cubic-bezier(0.25, 0.7, 0.3, 1) both,
         whisperOut 1.2s ease {message_hide_delay} forwards;
@@ -109,19 +109,19 @@ body {
     display: none;
 }
 
-/* Ник: ✦ ник ———— */
+/* Nick: ✦ nick ———— */
 
 #log .meta {
     display: flex;
     align-items: center;
     gap: 0.3em;
 
-    font-size: 1.15em;                        /* оригинал (без Streamlabs) */
-    font-size: calc({nickSize} * 0.01em);     /* поле «Размер ника» */
+    font-size: 1.15em;                        /* original (without Streamlabs) */
+    font-size: calc({nickSize} * 0.01em);     /* "Nick size" field */
     font-weight: 700;
     line-height: 1.2;
     letter-spacing: 0.01em;
-    font-size-adjust: from-font;   /* иероглифы по высоте как латиница */
+    font-size-adjust: from-font;   /* CJK glyphs match Latin height */
 }
 
 #log:not(.nick-twitch) .meta,
@@ -129,8 +129,8 @@ body {
     color: var(--nick) !important;
 }
 
-/* Цвет из Twitch, притянутый к палитре: жёлтые и салатовые ники
-   иначе пропадают в светлом ореоле */
+/* Twitch color pulled toward the palette: yellow and lime nicks
+   would otherwise vanish in the light halo */
 #log.nick-twitch .name {
     color: inherit;
     color: color-mix(in oklab, currentColor 68%, #2b3a6b);
@@ -151,7 +151,7 @@ body {
     color: var(--accent);
 }
 
-/* тонкая линия до правого края, гаснет к концу */
+/* thin line to the right edge, fading toward the end */
 #log .meta::after {
     content: "";
     flex: 1 1 0;
@@ -168,7 +168,7 @@ body {
 #log .name {
     flex: 0 1 auto;
     min-width: 0;
-    padding-right: 0.15em;     /* курсив не обрезается справа */
+    padding-right: 0.15em;     /* italic isn't clipped on the right */
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
@@ -178,7 +178,7 @@ body {
     display: none;
 }
 
-/* Значки */
+/* Badges */
 
 #log .badges {
     display: inline-flex;
@@ -209,12 +209,12 @@ body {
     opacity: 1;
 }
 
-/* Текст */
+/* Text */
 
 #log .message {
     display: block;
     width: 100%;
-    padding: 0.05em 0 0 0.95em;   /* под ником, после ✦ */
+    padding: 0.05em 0 0 0.95em;   /* below the nick, after the ✦ */
 
     font-size: 1.12em;
     font-weight: 600;
@@ -225,7 +225,7 @@ body {
     overflow-wrap: anywhere;
 }
 
-/* Эмоуты */
+/* Emotes */
 
 #log .emote {
     display: inline-block;
@@ -242,7 +242,7 @@ body {
     opacity: 0;
 }
 
-/* Цитата ответа (её добавляет chat.js) */
+/* Reply quote (added by chat.js) */
 
 #log .reply {
     display: block;
@@ -276,7 +276,7 @@ body {
     overflow-wrap: anywhere;
 }
 
-/* Появление: проступает из дымки */
+/* Entrance: emerges from the haze */
 
 @keyframes whisperIn {
     from {

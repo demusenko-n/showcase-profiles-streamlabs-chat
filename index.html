@@ -31,7 +31,7 @@
     #stage { position: absolute; left: 0; top: 0; width: 1280px; height: 720px; transform-origin: 0 0;
              background: var(--stage-bg, linear-gradient(160deg, #eef1fb, #c9d3ee)); background-size: 100% 100%; }
     #chat { position: absolute; border: 0; background: transparent; pointer-events: none; }
-    /* рамка источника: тянется за всю площадь, растягивается за правый нижний угол */
+    /* source frame: drag anywhere to move, drag the bottom-right corner to resize */
     #frame { position: absolute; cursor: move; outline: 2px dashed transparent; outline-offset: 0; touch-action: none; }
     #frame:hover, #stage.guide #frame, #frame.drag { outline-color: rgba(255, 0, 90, .75); }
     #frame .grip { position: absolute; right: -9px; bottom: -9px; width: 18px; height: 18px; border-radius: 50%;
@@ -95,12 +95,12 @@
 <main><div id="stage-wrap"><div id="stage"><iframe id="chat" title="chat"></iframe><div id="frame"><div class="grip"></div></div></div></div></main>
 
 <script>
-/* Источник по умолчанию, если стиль не задал свой в preview.json */
+/* Default source, if the style doesn't set its own in preview.json */
 const DEFAULT_SOURCE = { x: 944, y: 126, w: 290, h: 470 };
-/* Файлы стиля: папка в корне репозитория, в которой есть chat.html */
+/* Style files: a folder at the repo root that contains chat.html */
 const FILES = { html: 'chat.html', css: 'chat.css', js: ['chat.js', 'main.js'], fields: 'fields.json', preview: 'preview.json' };
 
-/* Хранилище браузера: может быть недоступно (приватный режим) — тогда просто не запоминаем */
+/* Browser storage: may be unavailable (private mode) — then we just don't remember */
 const store = {
     get(k) { try { return JSON.parse(localStorage.getItem('chatpreview:' + k)); } catch (e) { return null; } },
     set(k, v) { try { v === null ? localStorage.removeItem('chatpreview:' + k) : localStorage.setItem('chatpreview:' + k, JSON.stringify(v)); return true; } catch (e) { return false; } },
@@ -108,18 +108,18 @@ const store = {
 
 let stageSize = { w: 1280, h: 720 };
 let SOURCE = { ...DEFAULT_SOURCE };
-let styleSource = { ...DEFAULT_SOURCE };   // из preview.json текущего стиля
-let styleBg = null;                          // фон из preview.json текущего стиля
-let userBg = store.get('bg');                // { url, w, h } — своя картинка
+let styleSource = { ...DEFAULT_SOURCE };   // from the current style's preview.json
+let styleBg = null;                          // background from the current style's preview.json
+let userBg = store.get('bg');                // { url, w, h } — custom image
 
 const $ = id => document.getElementById(id);
 const params = new URLSearchParams(location.search);
 const setParam = (k, v) => { v === null || v === '' ? params.delete(k) : params.set(k, v); history.replaceState(null, '', '?' + params); };
 if (params.has('clean')) document.body.classList.add('clean');
 
-/* ---------- откуда брать файлы ---------- */
-/* GitHub: на github.io владелец и репозиторий берутся из адреса;
-   можно указать явно: ?repo=owner/name. Иначе — файлы рядом со страницей. */
+/* ---------- where to get files from ---------- */
+/* GitHub: on github.io the owner and repo come from the URL;
+   can be set explicitly: ?repo=owner/name. Otherwise — files next to the page. */
 function detectRepo() {
     if (params.get('repo')) return params.get('repo');
     const m = location.hostname.match(/^([^.]+)\.github\.io$/i);
@@ -136,7 +136,7 @@ async function githubSource() {
     const info = await api('');
     const ref = params.get('ref') || info.default_branch;
     const [branches, commit] = await Promise.all([api('branches?per_page=100'), api(`commits/${encodeURIComponent(ref)}`)]);
-    const sha = commit.sha;   // файлы по конкретному коммиту: свежие, без кеша ветки
+    const sha = commit.sha;   // files from a specific commit: fresh, no branch cache
     const tree = await api(`git/trees/${sha}?recursive=1`);
     const paths = new Set(tree.tree.map(t => t.path));
     const styles = [...paths].filter(p => p.endsWith('/' + FILES.html) && p.split('/').length === 2).map(p => p.split('/')[0]);
@@ -151,10 +151,10 @@ async function githubSource() {
 
 async function localSource() {
     $('ref-row').style.display = 'none';
-    /* Локально список папок взять неоткуда (сервер отдаёт index.html вместо листинга),
-       поэтому стили перечисляются в адресе: ?styles=frost,ex1 или ?style=frost */
+    /* Locally there's no way to get the folder list (the server returns index.html instead of a listing),
+       so styles are listed in the URL: ?styles=frost,ex1 or ?style=frost */
     let styles = (params.get('styles') || params.get('style') || '').split(',').filter(Boolean);
-    try {   // если сервер всё же отдаёт листинг папки — берём папки из него
+    try {   // if the server does return a directory listing — take the folders from it
         const html = await (await fetch('./')).text();
         const dirs = [...html.matchAll(/href="([^"?#/]+)\/"/g)].map(m => decodeURIComponent(m[1]));
         const found = await Promise.all(dirs.map(async d => (await fetch(`${d}/${FILES.html}`, { method: 'HEAD' })).ok ? d : null));
@@ -175,9 +175,9 @@ async function read(url) {
     return null;
 }
 
-/* ---------- поля ---------- */
-let fields = {};      // описание из fields.json
-let values = {};      // текущие значения
+/* ---------- fields ---------- */
+let fields = {};      // definitions from fields.json
+let values = {};      // current values
 
 function renderFields() {
     const box = $('fields');
@@ -217,7 +217,7 @@ function renderFields() {
     }
 }
 
-/* ---------- эмулятор Streamlabs внутри iframe ---------- */
+/* ---------- Streamlabs emulator inside an iframe ---------- */
 const EMULATOR = `
 const tpl = document.getElementById('chatlist_item').innerHTML;
 const log = document.getElementById('log');
@@ -239,7 +239,7 @@ document.dispatchEvent(new CustomEvent('onLoad', { detail: {} }));
 parent.postMessage({ type: 'ready' }, '*');
 `;
 
-let files = null;     // { html, css, js } текущего стиля
+let files = null;     // { html, css, js } of the current style
 const esc = s => s.replace(/<\/script/gi, '<\\/script');
 
 async function loadStyle(style) {
@@ -289,24 +289,24 @@ function fit() {
     $('stage-wrap').style.height = stageSize.h * scale + 'px';
 }
 
-/* ---------- фон и холст ---------- */
+/* ---------- background and canvas ---------- */
 
 function applyStage() {
-    /* холст всегда как выбран; своя картинка растягивается на весь холст */
+    /* the canvas is always as selected; a custom image is stretched over the whole canvas */
     const [w, h] = $('canvas').value.split('x').map(Number);
     stageSize = { w, h };
     if (userBg) $('stage').style.setProperty('--stage-bg', `url("${userBg.url}")`);
     else if (styleBg) $('stage').style.setProperty('--stage-bg', styleBg);
     else $('stage').style.removeProperty('--stage-bg');
-    /* положение источника хранится в долях холста, поэтому при смене
-       разрешения рамка масштабируется вместе с картинкой */
+    /* the source position is stored as fractions of the canvas, so when the
+       resolution changes the frame scales together with the image */
     const f = store.get('srcf');
     SOURCE = clampSource(f ? { x: f.x * w, y: f.y * h, w: f.w * w, h: f.h * h } : scaledDefault());
     placeSource();
     fit();
 }
 
-/* значения из стиля рассчитаны на 1280×720 — для другого холста масштабируем */
+/* style values assume 1280×720 — scale them for other canvases */
 function scaledDefault() {
     const k = stageSize.h / 720;
     const r = {};
@@ -352,13 +352,13 @@ for (const [id, key] of [['sx', 'x'], ['sy', 'y'], ['sw', 'w'], ['sh', 'h']]) {
     $(id).addEventListener('change', e => { SOURCE = clampSource({ ...SOURCE, [key]: +e.target.value }); placeSource(true); });
 }
 
-/* перетаскивание файла на превью */
+/* dropping a file onto the preview */
 const stageEl = $('stage-wrap');
 stageEl.addEventListener('dragover', e => { e.preventDefault(); $('stage').classList.add('dropping'); });
 stageEl.addEventListener('dragleave', () => $('stage').classList.remove('dropping'));
 stageEl.addEventListener('drop', e => { e.preventDefault(); $('stage').classList.remove('dropping'); setBackground(e.dataTransfer.files[0]); });
 
-/* перетаскивание и растягивание рамки */
+/* dragging and resizing the frame */
 $('frame').addEventListener('pointerdown', e => {
     e.preventDefault();
     const resize = e.target.classList.contains('grip');
@@ -384,7 +384,7 @@ addEventListener('resize', fit);
 
 const status = html => $('status').innerHTML = html;
 
-/* ---------- тестовые сообщения ---------- */
+/* ---------- test messages ---------- */
 const E = id => `https://static-cdn.jtvnw.net/emoticons/v2/${id}/default/dark/1.0`;
 const B = id => `https://static-cdn.jtvnw.net/badges/v1/${id}/1`;
 const BADGE = {
@@ -455,7 +455,7 @@ function seed() {
     s.forEach((f, i) => setTimeout(f, 60 * i));
 }
 
-/* ---------- элементы управления ---------- */
+/* ---------- controls ---------- */
 $('add').onclick = sendRandom;
 $('reply').onclick = () => sendReply();
 $('long').onclick = () => send(pick(USERS), LONG);

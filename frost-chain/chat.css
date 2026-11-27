@@ -1,38 +1,38 @@
 @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,600;1,700&family=Nunito:wght@500;600;700&family=Noto+Sans+JP:wght@500;600;700&family=Noto+Sans+KR:wght@500;600;700&family=Noto+Serif+JP:wght@600&family=Noto+Serif+KR:wght@600&display=swap');
 
 /*
- * Frost Chain — ледяные карточки, подвешенные на тонкую цепь,
- * как цепи на фоне. Streamlabs Chat Box → Custom HTML/CSS.
- * Размер источника под bg.jpg 1280×720: 290×470, позиция x 944, y 126.
+ * Frost Chain — icy cards hanging on a thin chain,
+ * like the chains in the background. Streamlabs Chat Box → Custom HTML/CSS.
+ * Source size for bg.jpg 1280×720: 290×470, position x 944, y 126.
  */
 
 :root {
-    --ink:          #34466b;   /* текст сообщения */
-    --nick:         #4f68a0;   /* ник */
-    --accent:       #89a0d8;   /* ✦, линии */
-    --muted:        #6f82ab;   /* текст цитаты */
-    --hair:         #b2c0ed;   /* волосок после ника */
+    --ink:          #34466b;   /* message text */
+    --nick:         #4f68a0;   /* nickname */
+    --accent:       #89a0d8;   /* ✦, lines */
+    --muted:        #6f82ab;   /* quote text */
+    --hair:         #b2c0ed;   /* hairline after the nick */
 
-    /* Карточки непрозрачные: OBS/Streamlabs смешивает полупрозрачный
-       белый с фоном неверно, и он выходит серым. */
+    /* Cards are opaque: OBS/Streamlabs blends semi-transparent
+       white with the background incorrectly, and it turns grey. */
     --card-top:     #f7f9ff;
     --card-bottom:  #e6ecfc;
-    --card-ring:    #c9d5f5;   /* тонкая внешняя обводка «стекла» */
+    --card-ring:    #c9d5f5;   /* thin outer outline of the "glass" */
     --card-shadow:  rgba(93, 124, 188, 0.2);
     --quote-bg:     #e0e8f9;
 
-    --chain-x:      0.7em;     /* ось цепи от левого края */
-    --card-left:    1.4em;     /* отступ карточек от левого края */
-    --hook-top:     0.62em;    /* на какой высоте карточка висит на цепи */
+    --chain-x:      0.7em;     /* chain axis from the left edge */
+    --card-left:    1.4em;     /* card offset from the left edge */
+    --hook-top:     0.62em;    /* height at which the card hangs on the chain */
     --gap:          0.55em;
-    --fade:         3.2em;     /* высота растворения сверху */
+    --fade:         3.2em;     /* height of the top fade-out */
 
-    /* цепь: звено «плашмя» + звено «ребром», повторяется по вертикали */
-    /* цепь: звено «ребром» на стыках тайла, звено «плашмя» посередине;
-       колечко застёжки всегда приходится на середину звена «ребром» */
+    /* chain: a flat link + an edge-on link, repeated vertically */
+    /* chain: edge-on link at the tile seams, flat link in the middle;
+       the clasp ring always lands in the middle of an edge-on link */
     --chain-links: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 24' preserveAspectRatio='none'%3E%3Cg fill='%23f3f6ff' stroke='%237d95cf' stroke-width='1.2'%3E%3Crect x='3.7' y='-9' width='2.6' height='18' rx='1.3'/%3E%3Crect x='3.7' y='15' width='2.6' height='18' rx='1.3'/%3E%3C/g%3E%3Cg fill='none'%3E%3Cellipse cx='5' cy='12' rx='3.3' ry='5.2' stroke='%237d95cf' stroke-width='1.9'/%3E%3Cellipse cx='5' cy='12' rx='3.3' ry='5.2' stroke='%23ffffff' stroke-width='0.6'/%3E%3C/g%3E%3C/svg%3E");
 
-    /* застёжка: колечко на цепи и тонкая перемычка к карточке */
+    /* clasp: a ring on the chain and a thin bridge to the card */
     --chain-hook: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 19 10'%3E%3Cpath d='M8.3 5H19' stroke='%237d95cf' stroke-width='1.2'/%3E%3Ccircle cx='5' cy='5' r='3.1' fill='%23f3f6ff' stroke='%237d95cf' stroke-width='1.6'/%3E%3Ccircle cx='5' cy='5' r='3.1' fill='none' stroke='%23ffffff' stroke-width='0.5'/%3E%3C/svg%3E");
 }
 
@@ -49,37 +49,37 @@ html, body {
 body {
     background: transparent;
     font-family: 'Nunito', 'Noto Sans JP', 'Noto Sans KR', 'Segoe UI', sans-serif;
-    font-synthesis: none;      /* иероглифы не «заваливаются» фальшивым курсивом */
+    font-synthesis: none;      /* CJK glyphs don't get a fake slanted italic */
     font-size: {font_size};
     color: var(--ink);
     text-shadow: none;
 
-    /* старые сообщения и цепь растворяются под заголовком */
+    /* old messages and the chain fade out under the header */
     -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 var(--fade));
             mask-image: linear-gradient(to bottom, transparent 0, #000 var(--fade));
 }
 
-/* Контейнер чата */
+/* Chat container */
 
 #log {
     position: absolute;
     bottom: 0;
     left: 0;
     width: 100%;
-    padding: 0 0.35em 0.8em var(--card-left);   /* снизу — отступ от звёздочек */
+    padding: 0 0.35em 0.8em var(--card-left);   /* bottom: clearance from the stars */
     display: flex;
     flex-direction: column;
     gap: var(--gap);
 }
 
-/* Цепь собирается из отрезков: у каждой карточки свой отрезок от её
-   застёжки вверх до застёжки предыдущей. chat.js подгоняет длину звена,
-   чтобы в отрезок влезало целое число звеньев, — поэтому колечко каждой
-   карточки всегда надето на одно и то же место цепи. */
+/* The chain is built from segments: each card has its own segment from its
+   clasp up to the previous card's clasp. chat.js adjusts the link length
+   so each segment holds a whole number of links, so every card's ring
+   always sits on the same spot of the chain. */
 #log .chain {
     position: absolute;
     left: calc(var(--chain-x) - var(--card-left) - 0.3em - 1px);
-    bottom: calc(100% - var(--hook-top) - 0.3em);   /* низ = центр колечка */
+    bottom: calc(100% - var(--hook-top) - 0.3em);   /* bottom = ring center */
     width: 0.6em;
     height: var(--seg, 0px);
     background: var(--chain-links) center bottom / 0.6em var(--link, 1.44em) repeat-y;
@@ -104,7 +104,7 @@ body {
     display: none;
 }
 
-/* Сообщение = карточка */
+/* Message = card */
 
 #log > div {
     position: relative;
@@ -122,7 +122,7 @@ body {
 
     transform-origin: calc(var(--chain-x) - var(--card-left)) var(--hook-top);
     animation: chainIn 0.6s cubic-bezier(0.2, 0.8, 0.25, 1) both;
-    /* «Скрывать сообщения после N с» из настроек Streamlabs */
+    /* "Hide messages after N s" from Streamlabs settings */
     animation:
         chainIn 0.6s cubic-bezier(0.2, 0.8, 0.25, 1) both,
         chainOut 0.6s ease {message_hide_delay} forwards;
@@ -132,7 +132,7 @@ body {
     display: none;
 }
 
-/* застёжка на цепи */
+/* clasp on the chain */
 #log > div::before {
     content: "";
     position: absolute;
@@ -154,7 +154,7 @@ body {
         linear-gradient(var(--accent), var(--accent)) right center / calc(100% - 0.3em) 1px no-repeat;
 }
 
-/* маленькая ✦ в углу карточки, как на рамке панели */
+/* small ✦ in the card corner, like on the panel border */
 #log > div::after {
     content: "✦";
     position: absolute;
@@ -166,23 +166,23 @@ body {
     color: var(--hair);
 }
 
-/* Ник: ✦ ник ———— */
+/* Nick: ✦ nick ———— */
 
 #log .meta {
     display: flex;
     align-items: center;
     gap: 0.3em;
-    padding-right: 1em;        /* место под ✦ в углу */
+    padding-right: 1em;        /* room for the corner ✦ */
     margin-bottom: 0.1em;
 
     font-family: 'Cormorant Garamond', 'Noto Serif JP', 'Noto Serif KR', Georgia, serif;
     font-style: italic;
-    font-size: 1.15em;                        /* оригинал (без Streamlabs) */
-    font-size: calc({nickSize} * 0.01em);     /* поле «Размер ника» */
+    font-size: 1.15em;                        /* original (without Streamlabs) */
+    font-size: calc({nickSize} * 0.01em);     /* "Nick size" field */
     font-weight: 700;
     line-height: 1.2;
     letter-spacing: 0.01em;
-    font-size-adjust: from-font;   /* иероглифы по высоте как латиница */
+    font-size-adjust: from-font;   /* CJK glyphs match Latin height */
     font-variant-numeric: lining-nums;
     font-feature-settings: "lnum" 1;
 }
@@ -192,13 +192,13 @@ body {
     color: var(--nick) !important;
 }
 
-/* цвет из Twitch, притянутый к палитре: жёлтые и салатовые иначе не читаются */
+/* Twitch color pulled toward the palette: yellow and lime are unreadable otherwise */
 #log.nick-twitch .name {
     color: inherit;
     color: color-mix(in oklab, currentColor 68%, #2b3a6b);
 }
 
-/* волосок после ника, гаснет к концу */
+/* hairline after the nick, fading toward the end */
 #log .meta::after {
     content: "";
     flex: 1 1 0;
@@ -211,7 +211,7 @@ body {
 #log .name {
     flex: 0 1 auto;
     min-width: 0;
-    padding-right: 0.15em;     /* курсив не обрезается справа */
+    padding-right: 0.15em;     /* italic isn't clipped on the right */
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
@@ -221,7 +221,7 @@ body {
     display: none;
 }
 
-/* Значки */
+/* Badges */
 
 #log .badges {
     display: inline-flex;
@@ -248,7 +248,7 @@ body {
     opacity: 1;
 }
 
-/* Текст */
+/* Text */
 
 #log .message {
     display: block;
@@ -263,7 +263,7 @@ body {
     overflow-wrap: anywhere;
 }
 
-/* Эмоуты */
+/* Emotes */
 
 #log .emote {
     display: inline-block;
@@ -280,7 +280,7 @@ body {
     opacity: 0;
 }
 
-/* Цитата ответа (её добавляет chat.js) */
+/* Reply quote (added by chat.js) */
 
 #log .reply {
     position: relative;
@@ -295,7 +295,7 @@ body {
     line-height: 1.3;
 }
 
-/* крючок ↳, нарисованный рамкой: не зависит от шрифта */
+/* ↳ hook drawn with borders: doesn't depend on the font */
 #log .reply::before {
     content: "";
     position: absolute;
@@ -330,7 +330,7 @@ body {
     overflow-wrap: anywhere;
 }
 
-/* Появление: карточку «вешают» на цепь — лёгкий качок вокруг застёжки */
+/* Entrance: the card is "hung" on the chain with a slight swing around the clasp */
 
 @keyframes chainIn {
     0% {

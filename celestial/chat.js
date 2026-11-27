@@ -1,9 +1,9 @@
 /*
- * Celestial — подряд идущие сообщения одного зрителя
- * собираются под одним ником (класс .cont), и цитата ответа.
+ * Celestial — consecutive messages from the same viewer
+ * are grouped under one nick (class .cont), plus the reply quote.
  */
 
-const GROUP_WINDOW_MS = 120000;   // дольше двух минут тишины — снова с ником
+const GROUP_WINDOW_MS = 120000;   // after more than two minutes of silence, show the nick again
 
 function previousVisible(row) {
     let prev = row.previousElementSibling;
@@ -40,7 +40,7 @@ new MutationObserver((mutations) => {
     }
 }).observe(document.getElementById('log'), { childList: true });
 
-/* Цитата ответа */
+/* Reply quote */
 
 function decodeIrcTag(value = '') {
     const escapes = {
@@ -123,7 +123,7 @@ document.addEventListener('onEventReceived', (event) => {
 
         removeReplyMention(message, tags);
 
-        /* ответ всегда начинает новую ветку с ником */
+        /* a reply always starts a new branch with a nick */
         row.classList.remove('cont');
 
         const reply = document.createElement('span');

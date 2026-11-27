@@ -1,32 +1,32 @@
 @import url('https://fonts.googleapis.com/css2?family=Comfortaa:wght@600;700&family=Nunito:wght@500;600;700&family=M+PLUS+Rounded+1c:wght@500;700&family=Noto+Sans+KR:wght@500;700&display=swap');
 
 /*
- * Celestial — чат-«созвездие»: без карточек, сообщения нанизаны
- * на тонкую вертикальную нить, у каждого ника звезда ✦.
+ * Celestial — a "constellation" chat: no cards, messages are strung
+ * on a thin vertical thread, each nick has a ✦ star.
  * Streamlabs Chat Box → Custom HTML/CSS.
- * Размер источника под bg.jpg 1280×720: 290×470, позиция x 944, y 126.
+ * Source size for bg.jpg 1280×720: 290×470, position x 944, y 126.
  */
 
 :root {
-    --ink:      #3f5689;   /* текст сообщения (глубже палитры, чтобы читался) */
-    --nick:     #5d7cbc;   /* ник */
-    --muted:    #6f86bd;   /* текст цитаты */
-    --star:     #7d96d2;   /* лучи звезды */
-    --star-core:#ffffff;   /* её сердцевина */
-    --line:     #ffffff;   /* нить */
-    --line-sub: #89a0d8;   /* её тень, чтобы нить была видна на светлом */
+    --ink:      #3f5689;   /* message text (deeper than the palette so it stays readable) */
+    --nick:     #5d7cbc;   /* nickname */
+    --muted:    #6f86bd;   /* quote text */
+    --star:     #7d96d2;   /* star rays */
+    --star-core:#ffffff;   /* its core */
+    --line:     #ffffff;   /* thread */
+    --line-sub: #89a0d8;   /* its shadow, so the thread is visible on light backgrounds */
     --star-glow: rgba(93, 124, 188, 0.6);
 
-    /* ореол текста: три слоя, от плотного к рассеянному */
+    /* text halo: three layers, from dense to diffuse */
     --halo-1: #ffffff;
     --halo-2: rgba(255, 255, 255, 0.9);
     --halo-3: rgba(230, 235, 253, 0.75);
 
-    --fade: 3.4em;         /* высота растворения сверху */
+    --fade: 3.4em;         /* height of the top fade-out */
 }
 
-/* Масштаб ника. Зарегистрированное свойство: если поле не подставилось
-   (файл открыт без Streamlabs), берётся оригинал 1.1, а не ломается всё. */
+/* Nick scale. A registered property: if the field isn't substituted
+   (file opened outside Streamlabs), the original 1.1 is used instead of breaking everything. */
 @property --ns {
     syntax: '<number>';
     inherits: true;
@@ -45,30 +45,30 @@ html, body {
 
 body {
     background: transparent;
-    /* латиница и кириллица: Nunito; японский: M PLUS Rounded 1c */
+    /* Latin and Cyrillic: Nunito; Japanese: M PLUS Rounded 1c */
     font-family: 'Nunito', 'M PLUS Rounded 1c', 'Noto Sans KR', 'Segoe UI', sans-serif;
     font-synthesis: none;
     font-size: {font_size};
     color: var(--ink);
 
-    /* старые сообщения и нить плавно растворяются под заголовком */
+    /* old messages and the thread fade out smoothly under the header */
     -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 var(--fade));
             mask-image: linear-gradient(to bottom, transparent 0, #000 var(--fade));
 }
 
-/* Контейнер чата */
+/* Chat container */
 
 #log {
-    --ns: calc({nickSize} * 0.01);      /* поле «Размер ника» */
-    --rail: 0.6em;                      /* где проходит нить */
-    --indent: 1.55em;                   /* где начинается текст */
-    --gap: 0.8em;                       /* между сообщениями */
+    --ns: calc({nickSize} * 0.01);      /* "Nick size" field */
+    --rail: 0.6em;                      /* where the thread runs */
+    --indent: 1.55em;                   /* where the text starts */
+    --gap: 0.8em;                       /* between messages */
 
     position: absolute;
     bottom: 0;
     left: 0;
     width: 100%;
-    padding: 0 0.6em 1em 0.6em;         /* отступ от звёздочек в нижних углах */
+    padding: 0 0.6em 1em 0.6em;         /* clearance from the stars in the bottom corners */
 
     text-shadow:
         0 0 0.1em var(--halo-1),
@@ -76,7 +76,7 @@ body {
         0 0 0.8em var(--halo-3);
 }
 
-/* Режимы ореола */
+/* Halo modes */
 
 #log.glow-strong {
     text-shadow:
@@ -101,10 +101,10 @@ body {
     --halo-3: rgba(45, 62, 120, 0.5);
 }
 
-/* Сообщение */
+/* Message */
 
 #log > div {
-    --star-y: calc(var(--ns) * 0.65em);   /* середина строки с ником */
+    --star-y: calc(var(--ns) * 0.65em);   /* middle of the nick line */
     --star-w: calc(var(--ns) * 0.72em);
     --star-h: calc(var(--ns) * 1.02em);
 
@@ -115,7 +115,7 @@ body {
     padding-left: var(--indent);
 
     animation: rowIn 0.7s cubic-bezier(0.25, 0.7, 0.3, 1) both;
-    /* «Скрывать сообщения после N с» из настроек Streamlabs */
+    /* "Hide messages after N s" from Streamlabs settings */
     animation:
         rowIn 0.7s cubic-bezier(0.25, 0.7, 0.3, 1) both,
         rowOut 1.2s ease {message_hide_delay} forwards;
@@ -129,7 +129,7 @@ body {
     display: none;
 }
 
-/* Продолжение от того же зрителя: без ника, звёздочка поменьше */
+/* Continuation from the same viewer: no nick, smaller star */
 #log:not(.group-off) > div.cont {
     --star-y: 0.68em;
     --star-w: 0.42em;
@@ -141,7 +141,7 @@ body {
     display: none;
 }
 
-/* Нить: отрезок от верха промежутка до низа сообщения */
+/* Thread: a segment from the top of the gap to the bottom of the message */
 
 #log > div::before {
     content: "";
@@ -156,7 +156,7 @@ body {
     animation: lineIn 0.5s ease-out both;
 }
 
-/* на пёстром фоне нить тоже в ореоле */
+/* on a busy background the thread gets a halo too */
 #log.glow-strong > div::before {
     box-shadow: 0 0 2px #ffffff, 0 0 6px rgba(255, 255, 255, 0.85);
 }
@@ -165,13 +165,13 @@ body {
     top: calc(-0.45 * var(--gap));
 }
 
-/* у самого старого нить уходит вверх, под растворение */
+/* on the oldest message the thread goes up, under the fade */
 #log > div:first-child::before {
     top: -30em;
     animation: none;
 }
 
-/* у самого нового нить заканчивается под звездой и гаснет */
+/* on the newest message the thread ends below the star and fades */
 #log > div:last-child::before {
     bottom: auto;
     height: calc(var(--gap) + var(--star-y) + 1.3em);
@@ -183,7 +183,7 @@ body {
     height: calc(30em + var(--star-y) + 1.3em);
 }
 
-/* Звезда */
+/* Star */
 
 #log .star {
     position: absolute;
@@ -211,7 +211,7 @@ body {
             mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 28'%3E%3Cpath d='M10 0C11.2 8.6 13.4 12.2 20 14 13.4 15.8 11.2 19.4 10 28 8.8 19.4 6.6 15.8 0 14 6.6 12.2 8.8 8.6 10 0Z'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
 }
 
-/* светлое пятно под звездой: разрывает нить, звезда «нанизана» на неё */
+/* light spot under the star: breaks the thread so the star looks strung on it */
 #log .star::after {
     content: "";
     position: absolute;
@@ -225,7 +225,7 @@ body {
     background: radial-gradient(closest-side, var(--halo-1) 35%, transparent);
 }
 
-/* самая новая звезда крупнее и мерцает */
+/* the newest star is larger and twinkles */
 #log > div:last-child {
     --star-w: calc(var(--ns) * 0.92em);
     --star-h: calc(var(--ns) * 1.3em);
@@ -241,7 +241,7 @@ body {
     animation: twinkle 3.6s 1s ease-in-out infinite;
 }
 
-/* Ник */
+/* Nick */
 
 #log .meta {
     display: flex;
@@ -253,7 +253,7 @@ body {
     font-weight: 700;
     line-height: 1.3;
     letter-spacing: 0.01em;
-    font-size-adjust: from-font;   /* иероглифы по высоте как латиница */
+    font-size-adjust: from-font;   /* CJK glyphs match Latin height */
 }
 
 #log:not(.nick-twitch) .meta,
@@ -261,8 +261,8 @@ body {
     color: var(--nick) !important;
 }
 
-/* Цвет из Twitch, притянутый к палитре: жёлтые и салатовые ники
-   иначе пропадают в светлом ореоле */
+/* Twitch color pulled toward the palette: yellow and lime nicks
+   would otherwise vanish in the light halo */
 #log.nick-twitch .name {
     color: inherit;
     color: color-mix(in oklab, currentColor 68%, #2b3a6b);
@@ -285,7 +285,7 @@ body {
     display: none;
 }
 
-/* Значки */
+/* Badges */
 
 #log .badges {
     display: inline-flex;
@@ -316,7 +316,7 @@ body {
     opacity: 1;
 }
 
-/* Текст */
+/* Text */
 
 #log .message {
     display: block;
@@ -332,7 +332,7 @@ body {
     overflow-wrap: anywhere;
 }
 
-/* Эмоуты */
+/* Emotes */
 
 #log .emote {
     display: inline-block;
@@ -349,7 +349,7 @@ body {
     opacity: 0;
 }
 
-/* Цитата ответа (её добавляет chat.js): ответвление от нити */
+/* Reply quote (added by chat.js): a branch off the thread */
 
 #log .reply {
     position: relative;
@@ -362,7 +362,7 @@ body {
     line-height: 1.3;
 }
 
-/* пунктирная веточка от нити к цитате */
+/* dotted twig from the thread to the quote */
 #log .reply::before {
     content: "";
     position: absolute;
@@ -396,7 +396,7 @@ body {
     overflow-wrap: anywhere;
 }
 
-/* Появление: нить дорастает, затем вспыхивает звезда */
+/* Entrance: the thread grows in, then the star flares */
 
 @keyframes rowIn {
     from {
